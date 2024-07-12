@@ -216,14 +216,7 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Prepare: &prepare.PrepareCollection{
 			&container.DockerExist{Not: true},
 		},
-		Action: &action.Template{
-			Template: docker_template.DockerConfig,
-			Dst:      filepath.Join("/etc/docker/", docker_template.DockerConfig.Name()),
-			Data: util.Data{
-				"Mirrors":            docker_template.Mirrors(i.KubeConf),
-				"InsecureRegistries": docker_template.InsecureRegistries(i.KubeConf),
-			},
-		},
+		Action:   new(container.GenerateDockerConfig),
 		Parallel: true,
 	}
 
