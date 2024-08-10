@@ -122,8 +122,8 @@ aicp:
   - gcc
   - libopenmpi-dev
   - pigz
-  - libnccl2=2.21.5-1+cuda12.4
-  - libnccl-dev=2.21.5-1+cuda12.4
+  - libnccl2=2.22.3-1+cuda12.5
+  - libnccl-dev=2.22.3-1+cuda12.5
   - nvidia-fabricmanager-550
 
 aicp-20-04:

@@ -17,7 +17,6 @@
 package pipeline
 
 import (
-	"fmt"
 	"os"
 	"sync"
 
@@ -54,7 +53,7 @@ type Pipeline struct {
 }
 
 func (p *Pipeline) Init() error {
-	fmt.Print(logo)
+	logger.Log.Info(logo)
 	p.PipelineCache = cache.NewCache()
 	p.SpecHosts = len(p.Runtime.GetAllHosts())
 	//if err := p.Runtime.GenerateWorkDir(); err != nil {

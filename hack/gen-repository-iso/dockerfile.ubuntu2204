@@ -45,7 +45,7 @@ RUN apt update -qq
 
 COPY --from=mikefarah/yq:4.11.1 /usr/bin/yq /usr/bin/yq
 RUN yq eval "${PKGS}" packages.yaml >> packages.list \
-    && sort -u packages.list | xargs apt-get install --yes --reinstall --print-uris | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls
+    && sort -u packages.list | xargs -n 1 apt-get install --yes --reinstall --print-uris | awk -F "'" '{print $2}' | grep -v '^$' | sort -u > packages.urls
 
 RUN mkdir -p ${DIR} \
     && wget -q -x -P ${DIR} -i packages.urls \
