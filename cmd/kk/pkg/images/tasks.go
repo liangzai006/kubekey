@@ -138,7 +138,7 @@ func GetImage(runtime connector.ModuleRuntime, kubeConf *common.KubeConf, name s
 		"linux-utils":         {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "openebs", Repo: "linux-utils", Tag: "3.3.0", Group: kubekeyv1alpha2.Worker, Enable: false},
 		// load balancer
 		"haproxy": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "library", Repo: "haproxy", Tag: "2.3", Group: kubekeyv1alpha2.Worker, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
-		"kubevip": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "plndr", Repo: "kube-vip", Tag: "v0.5.0", Group: kubekeyv1alpha2.Master, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
+		"kubevip": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: "plndr", Repo: "kube-vip", Tag: "v0.7.2", Group: kubekeyv1alpha2.Master, Enable: kubeConf.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
 		// kata-deploy
 		"kata-deploy": {RepoAddr: kubeConf.Cluster.Registry.PrivateRegistry, Namespace: kubekeyv1alpha2.DefaultKubeImageNamespace, Repo: "kata-deploy", Tag: "stable", Group: kubekeyv1alpha2.Worker, Enable: kubeConf.Cluster.Kubernetes.EnableKataDeploy()},
 		// node-feature-discovery
