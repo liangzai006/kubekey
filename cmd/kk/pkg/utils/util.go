@@ -18,6 +18,7 @@ package utils
 
 import (
 	"fmt"
+	"os/exec"
 	"regexp"
 	"strings"
 	"text/template"
@@ -35,6 +36,15 @@ func ResetTmpDir(runtime connector.Runtime) error {
 	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf(
 		"if [ -d %s ]; then rm -rf %s ;fi && mkdir -m 777 -p %s",
 		common.TmpDir, common.TmpDir, common.TmpDir), false)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
+	}
+	return nil
+}
+func ResetLocalTmpDir() error {
+	err := exec.Command("sh", "-c", fmt.Sprintf(
+		"if [ -d %s ]; then rm -rf %s ;fi && mkdir -m 777 -p %s",
+		common.TmpDir, common.TmpDir, common.TmpDir)).Run()
 	if err != nil {
 		return errors.Wrap(errors.WithStack(err), "reset tmp dir failed")
 	}

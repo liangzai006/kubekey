@@ -64,8 +64,9 @@ func (d *Debian) Add(runtime connector.Runtime, path string) error {
 		return err
 	}
 
-	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("echo 'deb [trusted=yes]  file://%s   /' > /etc/apt/sources.list.d/kubekey.list", path),
-		true); err != nil {
+	_, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("echo 'deb [trusted=yes]  %s  /' > /etc/apt/sources.list.d/kubekey.list", path), false)
+
+	if err != nil {
 		return err
 	}
 	return nil

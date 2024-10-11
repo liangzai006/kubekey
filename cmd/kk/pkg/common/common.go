@@ -29,6 +29,7 @@ const (
 
 	Master        = "master"
 	Worker        = "worker"
+	Repository    = "repository"
 	ETCD          = "etcd"
 	K8s           = "k8s"
 	Registry      = "registry"
@@ -99,8 +100,8 @@ const (
 	Artifact = "artifact"
 
 	// Aicp Config
-	AicpDockerRootDir = "/aicp/dockerRootDir"
-	AicpZpoolName = "zfspv-pool"
+	AicpDockerRootDir            = "/aicp/dockerRootDir"
+	AicpZpoolName                = "zfspv-pool"
 	AicpDefaultDockerOverlaySize = "50G"
-	AicpSupportedSystemVersions = "22.04,20.04"
+	AicpSupportedSystemVersions  = "22.04,20.04"
 )

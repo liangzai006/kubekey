@@ -19,13 +19,14 @@ package task
 import (
 	"context"
 	"fmt"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/common"
+	"runtime"
 	"time"
 
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/cache"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/ending"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
@@ -96,9 +97,11 @@ func (l *LocalTask) Execute() *ending.TaskResult {
 		return l.TaskResult
 	}
 
-	host := &connector.BaseHost{
-		Name: common.LocalHost,
-	}
+	host := connector.NewHost()
+	host.Name = common.LocalHost
+	host.Address = util.LocalIP()
+	host.InternalAddress = util.LocalIP()
+	host.Arch = runtime.GOARCH
 
 	selfRuntime := l.Runtime.Copy()
 	l.RunWithTimeout(selfRuntime, host)

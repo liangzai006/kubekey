@@ -18,7 +18,10 @@ package os
 
 import (
 	"fmt"
+	"log"
+	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -299,6 +302,23 @@ func (g *GetOSData) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type GetLocalOSData struct {
+	common.KubeAction
+}
+
+func (g *GetLocalOSData) Execute(runtime connector.Runtime) error {
+	osReleaseStr, err := exec.Command("sh", "-c", "cat /etc/os-release").Output()
+	if err != nil {
+		return err
+	}
+	osrData := osrelease.Parse(strings.Replace(string(osReleaseStr), "\r\n", "\n", -1))
+
+	// type: *osrelease.data
+	g.ModuleCache.Set(fmt.Sprintf("local-%s", Release), osrData)
+
+	return nil
+}
+
 type SyncRepositoryFile struct {
 	common.KubeAction
 }
@@ -346,6 +366,55 @@ func (s *SyncRepositoryFile) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type SyncRepositoryLocalFiles struct {
+	common.KubeAction
+}
+
+func (s *SyncRepositoryLocalFiles) Execute(runtime connector.Runtime) error {
+	if err := utils.ResetLocalTmpDir(); err != nil {
+		// umount
+		mountPath := filepath.Join(common.TmpDir, "iso")
+		umountCmd := fmt.Sprintf("umount %s", mountPath)
+		err = exec.Command("sh", "-c", umountCmd).Run()
+
+		// retry
+		if err = utils.ResetLocalTmpDir(); err != nil {
+			return errors.Wrap(err, "reset tmp dir failed")
+		}
+	}
+
+	host := runtime.RemoteHost()
+	release, ok := s.ModuleCache.Get(fmt.Sprintf("local-%s", Release))
+	if !ok {
+		return errors.New("get os release failed by root cache")
+	}
+	r := release.(*osrelease.Data)
+	isoFileName := fmt.Sprintf("%s-%s-%s.iso", r.ID, r.VersionID, host.GetArch())
+	srcDir := filepath.Join(runtime.GetWorkDir(), "repository", host.GetArch(), r.ID, r.VersionID)
+	files, err := os.ReadDir(srcDir)
+	if err != nil {
+		return errors.New(fmt.Sprintf("Error reading directory: %s", err.Error()))
+	}
+	for _, srcFile := range files {
+		if srcFile.IsDir() {
+			continue
+		}
+		dst := filepath.Join(common.TmpDir, srcFile.Name())
+		src := filepath.Join(srcDir, srcFile.Name())
+
+		err = CopyFile(src, dst)
+		if err != nil {
+			return errors.Wrapf(errors.WithStack(err), "cp %s to %s failed", src, dst)
+		}
+		if strings.Compare(isoFileName, srcFile.Name()) == 0 {
+			s.ModuleCache.Set("iso", srcFile.Name())
+		} else {
+			s.ModuleCache.Set(fmt.Sprintf("file-%s", srcFile.Name()), srcFile.Name())
+		}
+	}
+	return nil
+}
+
 type MountISO struct {
 	common.KubeAction
 }
@@ -363,6 +432,56 @@ func (m *MountISO) Execute(runtime connector.Runtime) error {
 	if _, err := runtime.GetRunner().Cmd(mountCmd, false); err != nil {
 		return errors.Wrapf(errors.WithStack(err), "mount %s at %s failed", path, mountPath)
 	}
+	return nil
+}
+
+type LocalMountISO struct {
+	common.KubeAction
+}
+
+func (m *LocalMountISO) Execute(runtime connector.Runtime) error {
+	mountPath := filepath.Join(common.TmpDir, "iso")
+
+	if err := exec.Command("sh", "-c", "mkdir -p "+mountPath).Run(); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "create mount dir failed")
+	}
+
+	isoFile, _ := m.ModuleCache.GetMustString("iso")
+	path := filepath.Join(common.TmpDir, isoFile)
+	mountCmd := fmt.Sprintf("sudo mount -t iso9660 -o loop %s %s", path, mountPath)
+
+	if err := exec.Command("sh", "-c", mountCmd).Run(); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "mount %s at %s failed", path, mountPath)
+	}
+	return nil
+}
+
+type NewRepoServer struct {
+	common.KubeAction
+}
+
+func (n *NewRepoServer) Execute(runtime connector.Runtime) error {
+	//设置要提供的文件目录
+	go func() {
+		dir := filepath.Join(common.TmpDir, "iso")
+
+		// 创建文件服务器
+		fs := http.FileServer(http.Dir(dir))
+
+		// 将文件服务器的处理程序注册到根路径
+		http.Handle("/", fs)
+
+		// 设置服务器端口
+		port := ":8888"
+		log.Printf("server starting for port to %s ，run dir: %s", port, dir)
+
+		// 启动 HTTP 服务器
+		if err := http.ListenAndServe(port, nil); err != nil {
+			log.Fatalf("server start fail: %v", err)
+		}
+
+	}()
+
 	return nil
 }
 
@@ -430,8 +549,11 @@ func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
 		return errors.New("get repo failed by host cache")
 	}
 	repo := r.(repository.Interface)
-
-	if installErr := repo.Add(runtime, filepath.Join(common.TmpDir, "iso")); installErr != nil {
+	serverIp := util.LocalIP()
+	if a.KubeConf.Arg.RepositoryIp != nil {
+		serverIp = a.KubeConf.Arg.RepositoryIp.String()
+	}
+	if installErr := repo.Add(runtime, fmt.Sprintf("http://%s:8888", serverIp)); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "add local repository failed")
 	}
 	if installErr := repo.Update(runtime); installErr != nil {
@@ -605,6 +727,19 @@ func (u *UmountISO) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
+type LocalUmountISO struct {
+	common.KubeAction
+}
+
+func (u *LocalUmountISO) Execute(runtime connector.Runtime) error {
+	mountPath := filepath.Join(common.TmpDir, "iso")
+	umountCmd := fmt.Sprintf("umount %s", mountPath)
+	if err := exec.Command("sh", "-c", umountCmd).Run(); err != nil {
+		return errors.Wrapf(errors.WithStack(err), "umount %s failed", mountPath)
+	}
+	return nil
+}
+
 type NodeConfigureNtpServer struct {
 	common.KubeAction
 }
@@ -712,7 +847,7 @@ func (g *ConfigAicpRootDir) Execute(runtime connector.Runtime) error {
 		return errors.New("current host not found")
 	}
 
-	if  currentHost.DockerRootDisk == "" {
+	if currentHost.DockerRootDisk == "" {
 		return nil
 	}
 
@@ -852,7 +987,6 @@ func getDeviceUUID(runtime connector.Runtime, device string) (string, error) {
 	}
 	return strings.TrimSpace(uuid), nil
 }
-
 
 // Run custom scripts
 func RunCustomScripts(runtime connector.Runtime, scripts kubekeyv1alpha2.CustomScripts, taskDir string) error {

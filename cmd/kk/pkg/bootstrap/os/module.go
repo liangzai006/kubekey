@@ -302,25 +302,34 @@ func (r *RepositoryModule) Init() {
 		Desc:     "Get OS release",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(GetOSData),
-		Parallel: true,
+		Parallel: false,
 	}
 
-	sync := &task.RemoteTask{
+	getLocalOSData := &task.LocalTask{
+		Name:   "GetOSData",
+		Desc:   "Get Local OS release",
+		Action: new(GetLocalOSData),
+	}
+	sync := &task.LocalTask{
 		Name:     "SyncRepositoryISOFile",
-		Desc:     "Sync repository iso file to all nodes",
-		Hosts:    r.Runtime.GetAllHosts(),
-		Action:   new(SyncRepositoryFile),
-		Parallel: true,
+		Desc:     "Sync repository iso file to tmp path",
+		Action:   new(SyncRepositoryLocalFiles),
+		Rollback: nil,
 		Retry:    2,
 	}
 
-	mount := &task.RemoteTask{
-		Name:     "MountISO",
-		Desc:     "Mount iso file",
-		Hosts:    r.Runtime.GetAllHosts(),
-		Action:   new(MountISO),
-		Parallel: true,
-		Retry:    1,
+	mount := &task.LocalTask{
+		Name:   "MountISO",
+		Desc:   "Mount iso file",
+		Action: new(LocalMountISO),
+		Retry:  1,
+	}
+
+	newServer := &task.LocalTask{
+		Name:   "NewServer",
+		Desc:   "New repository server ",
+		Action: new(NewRepoServer),
+		Retry:  1,
 	}
 
 	newRepo := &task.RemoteTask{
@@ -354,8 +363,8 @@ func (r *RepositoryModule) Init() {
 	}
 
 	preInstall := &task.RemoteTask{
-		Name:     "InstallPackage",
-		Desc:     "Install packages",
+		Name:     "InstallPrePackage",
+		Desc:     "InstallPrepackages",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(PreInstallPackage),
 		Parallel: true,
@@ -384,8 +393,8 @@ func (r *RepositoryModule) Init() {
 	}
 
 	postInstall := &task.RemoteTask{
-		Name:     "InstallPackage",
-		Desc:     "Install packages",
+		Name:     "InstallPostPackage",
+		Desc:     "InstallPostPackages",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(PostInstallPackage),
 		Parallel: true,
@@ -412,18 +421,18 @@ func (r *RepositoryModule) Init() {
 		Retry:    1,
 	}
 
-	umount := &task.RemoteTask{
-		Name:     "UmountISO",
-		Desc:     "Umount ISO file",
-		Hosts:    r.Runtime.GetAllHosts(),
-		Action:   new(UmountISO),
-		Parallel: true,
+	umount := &task.LocalTask{
+		Name:   "UmountISO",
+		Desc:   "Umount ISO file",
+		Action: new(LocalUmountISO),
 	}
 
 	r.Tasks = []task.Interface{
 		getOSData,
+		getLocalOSData,
 		sync,
 		mount,
+		newServer,
 		newRepo,
 		backup,
 		add,

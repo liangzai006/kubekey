@@ -19,6 +19,7 @@ package common
 import (
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"net"
 )
 
 type KubeRuntime struct {
@@ -49,13 +50,14 @@ type Argument struct {
 	KubeConfig          string
 	Artifact            string
 	InstallPackages     bool
-	IsAicpCluster	    bool
-	IsSkipSystemCheck	bool
+	IsAicpCluster       bool
+	IsSkipSystemCheck   bool
 	ImagesDir           string
 	Namespace           string
 	DeleteCRI           bool
 	Role                string
 	Type                string
+	RepositoryIp        net.IP
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
