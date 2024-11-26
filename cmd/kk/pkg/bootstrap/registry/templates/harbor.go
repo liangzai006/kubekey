@@ -49,12 +49,12 @@ hostname: {{ .Domain }}
 # http related config
 http:
   # port for http, default is 80. If https enabled, this port will redirect to https port
-  port: 80
+  port: 8088
 
 # https related config
 https:
   # https port for harbor, default is 443
-  port: 443
+  port: {{ .HttpsPort }}
   # The path of cert and key files for nginx
   certificate: /etc/ssl/registry/ssl/{{ .Certificate }}
   private_key: /etc/ssl/registry/ssl/{{ .Key }}

@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	"fmt"
+	"k8s.io/klog/v2"
 	"regexp"
 	"strconv"
 	"strings"
@@ -68,11 +69,11 @@ type HostCfg struct {
 	Timeout         *int64 `yaml:"timeout,omitempty" json:"timeout,omitempty"`
 
 	// Labels defines the kubernetes labels for the node.
-	Labels map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
-	DockerRootDisk string `yaml:"dockerRootDisk,omitempty" json:"dockerRootDisk,omitempty"`
-	ZfsDataDisk	[]string `yaml:"zfsDataDisk,omitempty" json:"zfsDataDisk,omitempty"`
-	GpuType string `yaml:"gpuType,omitempty" json:"gpuType,omitempty"`
-	DockerOverlaySize string `yaml:"dockerOverlaySize,omitempty" json:"dockerOverlaySize,omitempty"`
+	Labels            map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	DockerRootDisk    string            `yaml:"dockerRootDisk,omitempty" json:"dockerRootDisk,omitempty"`
+	ZfsDataDisk       []string          `yaml:"zfsDataDisk,omitempty" json:"zfsDataDisk,omitempty"`
+	GpuType           string            `yaml:"gpuType,omitempty" json:"gpuType,omitempty"`
+	DockerOverlaySize string            `yaml:"dockerOverlaySize,omitempty" json:"dockerOverlaySize,omitempty"`
 }
 
 // ControlPlaneEndpoint defines the control plane endpoint information for cluster.
@@ -102,8 +103,8 @@ type System struct {
 	Timezone        string          `yaml:"timezone" json:"timezone,omitempty"`
 	PreRpms         []string        `yaml:"preRpms" json:"preRpms,omitempty"`
 	PreDebs         []string        `yaml:"preDebs" json:"preDebs,omitempty"`
-	Rpms         	[]string        `yaml:"rpms" json:"rpms,omitempty"`
-	Debs         	[]string        `yaml:"debs" json:"debs,omitempty"`
+	Rpms            []string        `yaml:"rpms" json:"rpms,omitempty"`
+	Debs            []string        `yaml:"debs" json:"debs,omitempty"`
 	PostRpms        []string        `yaml:"postRpms" json:"postRpms,omitempty"`
 	PostDebs        []string        `yaml:"postDebs" json:"postDebs,omitempty"`
 	AfterPrePkgs    []CustomScripts `yaml:"afterPrePkgs" json:"afterPrePkgs,omitempty"`
@@ -202,10 +203,10 @@ func (cfg *ClusterSpec) GroupHosts() map[string][]*KubeHost {
 // +kubebuilder:object:generate=false
 type KubeHost struct {
 	*connector.BaseHost
-	Labels map[string]string
-	DockerRootDisk string
-	ZfsDataDisk	[]string
-	GpuType string
+	Labels            map[string]string
+	DockerRootDisk    string
+	ZfsDataDisk       []string
+	GpuType           string
 	DockerOverlaySize string
 }
 
@@ -223,11 +224,11 @@ func toHosts(cfg HostCfg) *KubeHost {
 	host.Timeout = *cfg.Timeout
 
 	kubeHost := &KubeHost{
-		BaseHost: host,
-		Labels:   cfg.Labels,
-		DockerRootDisk: cfg.DockerRootDisk,
-		ZfsDataDisk: cfg.ZfsDataDisk,
-		GpuType: cfg.GpuType,
+		BaseHost:          host,
+		Labels:            cfg.Labels,
+		DockerRootDisk:    cfg.DockerRootDisk,
+		ZfsDataDisk:       cfg.ZfsDataDisk,
+		GpuType:           cfg.GpuType,
 		DockerOverlaySize: cfg.DockerOverlaySize,
 	}
 	return kubeHost
@@ -334,4 +335,30 @@ func (r *RegistryConfig) GetHost() string {
 		return ""
 	}
 	return strings.Split(r.PrivateRegistry, "/")[0]
+}
+
+func (r *RegistryConfig) GetRegistryDomain() string {
+	host := r.GetHost()
+
+	s := strings.Split(host, ":")
+	if len(s) != 2 {
+		klog.Warningf("failed to split domain and port from host: %s", host)
+		return host
+	}
+	return s[0]
+}
+
+func (r *RegistryConfig) GetRegistryPort() int {
+	host := r.GetHost()
+
+	s := strings.Split(host, ":")
+	if len(s) != 2 {
+		klog.Warningf("failed to split domain and port from host: %s", host)
+		return 443
+	}
+	atoi, err := strconv.Atoi(s[1])
+	if err != nil {
+		atoi = 443
+	}
+	return atoi
 }

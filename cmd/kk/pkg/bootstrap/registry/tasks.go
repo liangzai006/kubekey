@@ -221,7 +221,7 @@ type GenerateHarborConfig struct {
 }
 
 func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
-	registryDomain := g.KubeConf.Cluster.Registry.GetHost()
+	registryDomain := g.KubeConf.Cluster.Registry.GetRegistryDomain()
 
 	if g.KubeConf.Cluster.Registry.Type == "harbor-ha" {
 		host := runtime.RemoteHost()
@@ -233,10 +233,11 @@ func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
 		Dst:      "/opt/harbor/harbor.yml",
 		Data: util.Data{
 			"Domain":      registryDomain,
-			"Certificate": fmt.Sprintf("%s.pem", g.KubeConf.Cluster.Registry.GetHost()),
-			"Key":         fmt.Sprintf("%s-key.pem", g.KubeConf.Cluster.Registry.GetHost()),
-			"Password":    templates.Password(g.KubeConf, g.KubeConf.Cluster.Registry.GetHost()),
+			"Certificate": fmt.Sprintf("%s.pem", registryDomain),
+			"Key":         fmt.Sprintf("%s-key.pem", registryDomain),
+			"Password":    templates.Password(g.KubeConf, registryDomain),
 			"AicpCluster": templates.IsAicpCluster(g.KubeConf),
+			"HttpsPort":   g.KubeConf.Cluster.Registry.GetRegistryPort(),
 		},
 	}
 	templateAction.Init(nil, nil)
