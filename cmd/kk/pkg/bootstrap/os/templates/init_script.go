@@ -104,6 +104,9 @@ echo 'net.ipv6.conf.default.disable_ipv6 = 0' >> /etc/sysctl.conf
 echo 'net.ipv6.conf.lo.disable_ipv6 = 0' >> /etc/sysctl.conf
 echo 'net.ipv6.conf.all.forwarding=1' >> /etc/sysctl.conf
 
+#set zfs memory
+echo "options zfs zfs_arc_max=10737418240" > /etc/modprobe.d/zfs.conf
+
 #See https://help.aliyun.com/document_detail/118806.html#uicontrol-e50-ddj-w0y
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_recycle ?= ?(0|1|2)@net.ipv4.tcp_tw_recycle = 0@g" /etc/sysctl.conf
 sed -r -i "s@#{0,}?net.ipv4.tcp_tw_reuse ?= ?(0|1)@net.ipv4.tcp_tw_reuse = 0@g" /etc/sysctl.conf
