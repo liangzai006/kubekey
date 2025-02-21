@@ -62,7 +62,7 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
     }
   },
   {{- end}}
-  "exec-opts": ["native.cgroupdriver=systemd"]
+  "exec-opts": ["native.cgroupdriver=cgroupfs"]
 }
     `)))
 
