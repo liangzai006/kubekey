@@ -48,12 +48,13 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
   {{- end}}
   {{- if .AicpCluster }}
   "storage-driver": "overlay2",
+  {{- if ne .DockerRootOverlaySize "0"}}
   "storage-opts": [ "overlay2.size={{ .DockerRootOverlaySize }}" ],
+  {{- end }}
   "live-restore": true,
   "max-concurrent-downloads": 25,
   "max-concurrent-uploads": 25,
-  {{- end}}
-  {{- if and .AicpCluster (eq .GpuNodeType "nvidia") }}
+  {{- if eq .GpuNodeType "nvidia" }}
   "default-runtime": "nvidia",
   "runtimes": {	
     "nvidia": {
@@ -61,6 +62,7 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
       "runtimeArgs": []
     }
   },
+  {{- end}}
   {{- end}}
   "exec-opts": ["native.cgroupdriver=cgroupfs"]
 }
@@ -97,6 +99,9 @@ func IsAicpCluster(kubeConf *common.KubeConf) bool {
 func DockerRootOverlaySize(kubeConf *common.KubeConf, runtime connector.Runtime) string {
 	if kubeConf.Arg.IsAicpCluster {
 		currentHost := getCurrentHost(runtime)
+		if currentHost.DockerRootDisk == "" {
+			return "0"
+		}
 		if len(currentHost.DockerOverlaySize) > 0 {
 			return currentHost.DockerOverlaySize
 		}
