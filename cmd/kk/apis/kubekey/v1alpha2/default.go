@@ -56,7 +56,7 @@ const (
 	DefaultKubeovnVersion          = "v1.10.6"
 	DefalutMultusVersion           = "v3.8"
 	DefaultHelmVersion             = "v3.13.3"
-	DefaultDockerComposeVersion    = "v2.2.2"
+	DefaultDockerComposeVersion    = "v2.36.0"
 	DefaultRegistryVersion         = "2"
 	DefaultHarborVersion           = "v2.13.0"
 	DefaultMaxPods                 = 110
