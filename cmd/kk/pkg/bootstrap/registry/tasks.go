@@ -252,7 +252,7 @@ type StartHarbor struct {
 }
 
 func (g *StartHarbor) Execute(runtime connector.Runtime) error {
-	startCmd := "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh --with-notary --with-trivy --with-chartmuseum && systemctl daemon-reload && systemctl enable harbor && systemctl restart harbor"
+	startCmd := "cd /opt/harbor && chmod +x install.sh && export PATH=$PATH:/usr/local/bin; ./install.sh  --with-trivy  && systemctl daemon-reload && systemctl enable harbor && systemctl restart harbor"
 	if _, err := runtime.GetRunner().SudoCmd(startCmd, false); err != nil {
 		return errors.Wrap(errors.WithStack(err), "start harbor failed")
 	}

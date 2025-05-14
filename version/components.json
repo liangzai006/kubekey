@@ -1466,6 +1466,9 @@
             "v2.7.1": "b86f161f0b6f4c6b294e62797ff20c24a39c918f4d1fd63728864a0461b3cdc7",
             "v2.10.1": "aed3fe341e563e11286fb243b2bfe4162d0c5816d548df049df07fabceea038f",
             "v2.13.0": "4be66658984a97190529280f462d5acbdc967583e358af5369f619d60ac9bd76"
+        },
+        "arm64": {
+            "v2.13.0": "d5c8d155a463cef7735feb5af2e81a8fc036c702aadad7d3c59b1c1292011255"
         }
     },
     "calicoctl": {
