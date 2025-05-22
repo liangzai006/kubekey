@@ -95,10 +95,10 @@ func RegistryBinariesDownload(manifest *common.ArtifactManifest, path, arch stri
 	if m.Components.DockerCompose.Version != "" {
 		compose := files.NewKubeBinary("compose", arch, kubekeyapiv1alpha2.DefaultDockerComposeVersion, path, manifest.Arg.DownloadCommand)
 		containerManager := files.NewKubeBinary("docker", arch, kubekeyapiv1alpha2.DefaultDockerVersion, path, manifest.Arg.DownloadCommand)
-		if arch == "amd64" {
-			binaries = append(binaries, compose)
-			binaries = append(binaries, containerManager)
-		}
+
+		binaries = append(binaries, compose)
+		binaries = append(binaries, containerManager)
+
 	}
 
 	for _, binary := range binaries {
