@@ -1091,7 +1091,7 @@ func (c *ConfigureKubernetes) Execute(runtime connector.Runtime) error {
 			}
 		}
 		if kubeHost.IsRole(common.Worker) && !kubeHost.IsRole(common.Master) {
-			taintCmd := fmt.Sprintf("kubectl taint nodes %s aicp.group/worker:NoSchedule  --overwrite", hosts[j].GetName())
+			taintCmd := fmt.Sprintf("/usr/local/bin/kubectl taint nodes %s aicp.group/worker:NoSchedule  --overwrite", hosts[j].GetName())
 			_, err := runtime.GetRunner().SudoCmd(taintCmd, true)
 			if err != nil {
 				return err
