@@ -45,24 +45,6 @@ func (h *GreetingsTask) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-// type NodeSystemPreCheck struct {
-// 	common.KubeAction
-// }
-
-// func (n *NodeSystemPreCheck) Execute(runtime connector.Runtime) error {
-// 	// check release version
-// 	if n.KubeConf.Arg.IsAicpCluster {
-// 		releaseVersion, err := runtime.GetRunner().Cmd("grep DISTRIB_RELEASE /etc/lsb-release | cut -d \"=\" -f 2\n", false)
-// 		if err != nil {
-// 			return errors.Wrap(err, "Failed to get release version")
-// 		}
-// 		if !strings.Contains(common.AicpSupportedSystemVersions, releaseVersion) {
-// 			return errors.New("Unsupported system version")
-// 		}
-// 	}
-// 	return nil
-// }
-
 type NodePreCheck struct {
 	common.KubeAction
 }
