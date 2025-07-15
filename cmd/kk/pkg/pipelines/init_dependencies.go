@@ -29,11 +29,9 @@ import (
 
 func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
-	skipSystemCheck := runtime.Arg.IsSkipSystemCheck
 
 	m := []module.Module{
 		&precheck.GreetingsModule{},
-		&precheck.NodeSystemPreCheckModule{Skip: skipSystemCheck},
 		&artifact.UnArchiveModule{Skip: noArtifact},
 		&os.RepositoryModule{Skip: noArtifact},
 		&os.RepositoryOnlineModule{Skip: !noArtifact},

@@ -17,12 +17,13 @@ limitations under the License.
 package init
 
 import (
+	"net"
+
 	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/options"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/pipelines"
 	"github.com/spf13/cobra"
-	"net"
 )
 
 type InitOsOptions struct {
@@ -30,7 +31,6 @@ type InitOsOptions struct {
 	ClusterCfgFile     string
 	Artifact           string
 	IsAicpCluster      bool
-	IsSkipSystemCheck  bool
 	RepositoryServerIp net.IP
 }
 
@@ -59,12 +59,11 @@ func NewCmdInitOs() *cobra.Command {
 
 func (o *InitOsOptions) Run() error {
 	arg := common.Argument{
-		FilePath:          o.ClusterCfgFile,
-		Debug:             o.CommonOptions.Verbose,
-		Artifact:          o.Artifact,
-		IsAicpCluster:     o.IsAicpCluster,
-		IsSkipSystemCheck: o.IsSkipSystemCheck,
-		RepositoryIp:      o.RepositoryServerIp,
+		FilePath:      o.ClusterCfgFile,
+		Debug:         o.CommonOptions.Verbose,
+		Artifact:      o.Artifact,
+		IsAicpCluster: o.IsAicpCluster,
+		RepositoryIp:  o.RepositoryServerIp,
 	}
 	return pipelines.InitDependencies(arg)
 }
@@ -92,6 +91,5 @@ func (o *InitOsOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.IsAicpCluster, "is-aicp-cluster", "", false, "Init a aicp cluster os")
-	cmd.Flags().BoolVarP(&o.IsSkipSystemCheck, "is-skip-system-check", "", false, "Skip system check")
 	cmd.Flags().IPVarP(&o.RepositoryServerIp, "repository-server-ip", "r", nil, "Repository server ip")
 }

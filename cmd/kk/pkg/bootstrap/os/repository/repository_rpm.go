@@ -60,7 +60,7 @@ func (r *RedhatPackageManager) Add(runtime connector.Runtime, path string) error
 [base-local]
 name=rpms-local
 
-baseurl=file://%s
+baseurl=%s
 
 enabled=1 
 

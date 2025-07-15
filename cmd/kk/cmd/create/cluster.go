@@ -46,7 +46,6 @@ type CreateClusterOptions struct {
 	Artifact            string
 	InstallPackages     bool
 	IsAicpCluster       bool
-	IsSkipSystemCheck   bool
 
 	localStorageChanged bool
 }
@@ -124,7 +123,6 @@ func (o *CreateClusterOptions) Run() error {
 		Artifact:            o.Artifact,
 		InstallPackages:     o.InstallPackages,
 		IsAicpCluster:       o.IsAicpCluster,
-		IsSkipSystemCheck:   o.IsSkipSystemCheck,
 		Namespace:           o.CommonOptions.Namespace,
 	}
 
@@ -150,7 +148,6 @@ func (o *CreateClusterOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
 	cmd.Flags().BoolVarP(&o.IsAicpCluster, "is-aicp-cluster", "", false, "Deploy a aicp cluster")
-	cmd.Flags().BoolVarP(&o.IsSkipSystemCheck, "is-skip-system-check", "", false, "Skip system check")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

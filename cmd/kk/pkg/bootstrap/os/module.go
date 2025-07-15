@@ -306,7 +306,7 @@ func (r *RepositoryModule) Init() {
 	}
 
 	getLocalOSData := &task.LocalTask{
-		Name:   "GetOSData",
+		Name:   "GetLocalOSData",
 		Desc:   "Get Local OS release",
 		Action: new(GetLocalOSData),
 	}

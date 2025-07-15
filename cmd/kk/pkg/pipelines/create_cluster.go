@@ -56,12 +56,12 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		skipLocalStorage = false
 	}
 
-	skipSystemCheck := runtime.Arg.IsSkipSystemCheck
+	// skipSystemCheck := runtime.Arg.IsSkipSystemCheck
 
 	m := []module.Module{
 		&precheck.GreetingsModule{},
 		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
-		&precheck.NodeSystemPreCheckModule{Skip: skipSystemCheck},
+		// &precheck.NodeSystemPreCheckModule{Skip: skipSystemCheck},
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
