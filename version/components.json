@@ -1470,7 +1470,7 @@
       "v2.13.0": "4be66658984a97190529280f462d5acbdc967583e358af5369f619d60ac9bd76"
     },
     "arm64": {
-      "v2.13.0": "76e7090aa7c4dede868bddac97084fcf92be9a263daaa847bea8a9e97fdd0410"
+      "v2.13.0": "c8d46a6a92414bfdd11b87b80355af4d33eceac593163f0be68b004b0a603d75"
     }
   },
   "calicoctl": {
