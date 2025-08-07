@@ -102,5 +102,6 @@ const (
 	// Aicp Config
 	AicpDockerRootDir            = "/aicp/dockerRootDir"
 	AicpZpoolName                = "zfspv-pool"
+	LongHornVolumeDir            = "/var/lib/longhorn"
 	AicpDefaultDockerOverlaySize = "50G"
 )

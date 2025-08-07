@@ -909,14 +909,42 @@ func (g *ConfigAicpDataDir) Execute(runtime connector.Runtime) error {
 		return nil
 	}
 
-	modprobeCmd := "modprobe zfs"
-	runtime.GetRunner().SudoCmd(modprobeCmd, false)
+	mkdirCmd := fmt.Sprintf("mkdir -p %s", common.LongHornVolumeDir)
+	_, err := runtime.GetRunner().SudoCmd(mkdirCmd, false)
+	if err != nil {
+		return errors.Wrap(err, "failed to create longhorn volume directory")
+	}
 
-	if !isZfsPoolCreated(runtime, common.AicpZpoolName) {
-		zfsCmd := fmt.Sprintf("zpool create %s %s", common.AicpZpoolName, strings.Join(currentHost.ZfsDataDisk, " "))
-		_, err := runtime.GetRunner().SudoCmd(zfsCmd, false)
+	if !checkFileSystemFormattedAsExt4(runtime, currentHost.ZfsDataDisk[0]) {
+		// Format file system
+		formatCmd := fmt.Sprintf("mkfs.ext4 %s", currentHost.ZfsDataDisk[0])
+		_, err := runtime.GetRunner().SudoCmd(formatCmd, false)
 		if err != nil {
-			return errors.Wrap(err, "failed to create zpool")
+			return errors.Wrap(err, "failed to format disk with ext4")
+		}
+	}
+
+	if !checkMountExists(runtime, common.LongHornVolumeDir) {
+		// Mount file system
+		mountCmd := fmt.Sprintf("mount  %s %s", currentHost.ZfsDataDisk[0], common.LongHornVolumeDir)
+		_, err := runtime.GetRunner().SudoCmd(mountCmd, false)
+		if err != nil {
+			return errors.Wrap(err, "failed to mount longhorn volume")
+		}
+	}
+
+	if !checkFstabEntryExists(runtime, common.LongHornVolumeDir) {
+		// Get UUID of file system
+		uuid, err := getDeviceUUID(runtime, currentHost.ZfsDataDisk[0])
+		if err != nil || uuid == "" {
+			return errors.Wrap(err, "failed to get UUID")
+		}
+
+		// Add mount information to /etc/fstab
+		fstabCmd := fmt.Sprintf("echo 'UUID=%s %s ext4 defaults 0 1' >> /etc/fstab", uuid, common.LongHornVolumeDir)
+		_, err = runtime.GetRunner().SudoCmd(fstabCmd, false)
+		if err != nil {
+			return errors.Wrap(err, "failed to add fstab entry")
 		}
 	}
 
@@ -955,6 +983,14 @@ func checkFileSystemFormattedAsXfs(runtime connector.Runtime, device string) boo
 		return false
 	}
 	return strings.TrimSpace(out) == "xfs"
+}
+func checkFileSystemFormattedAsExt4(runtime connector.Runtime, device string) bool {
+	formatCmd := fmt.Sprintf("blkid -s TYPE -o value %s", device)
+	out, err := runtime.GetRunner().SudoCmd(formatCmd, false)
+	if err != nil {
+		return false
+	}
+	return strings.TrimSpace(out) == "ext4"
 }
 
 // Check if file dir is mounted
