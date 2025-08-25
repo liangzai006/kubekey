@@ -17,9 +17,10 @@
 package images
 
 import (
+	"time"
+
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
-	"time"
 )
 
 type PullModule struct {
@@ -57,10 +58,10 @@ func (c *CopyImagesToLocalModule) Init() {
 	c.Desc = "Copy images to a local OCI path from registries"
 
 	copyImage := &task.LocalTask{
-		Name:   "SaveImages",
-		Desc:   "Copy images to a local OCI path from registries",
-		Action: new(SaveImages),
-		Retry:  10,
+		Name:    "SaveImages",
+		Desc:    "Copy images to a local OCI path from registries",
+		Action:  new(SaveImages),
+		Retry:   10,
 		Timeout: 8 * time.Hour,
 	}
 

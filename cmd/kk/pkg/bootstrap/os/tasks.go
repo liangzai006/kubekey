@@ -19,6 +19,7 @@ package os
 import (
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"os/exec"
@@ -27,6 +28,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"k8s.io/klog/v2"
 
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os/repository"
@@ -135,6 +137,21 @@ func (n *NodeExecScript) Execute(runtime connector.Runtime) error {
 
 	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initOS.sh", common.KubeScriptDir), true); err != nil {
 		return errors.Wrap(errors.WithStack(err), "Failed to configure operating system")
+	}
+	return nil
+}
+
+type NodeExecHostsScript struct {
+	common.KubeAction
+}
+
+func (n *NodeExecHostsScript) Execute(runtime connector.Runtime) error {
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/initHosts.sh", common.KubeScriptDir), false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to chmod +x init hosts script")
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initHosts.sh", common.KubeScriptDir), true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to configure hosts")
 	}
 	return nil
 }
@@ -461,22 +478,31 @@ type NewRepoServer struct {
 }
 
 func (n *NewRepoServer) Execute(runtime connector.Runtime) error {
-	//设置要提供的文件目录
+	// Set the directory to be provided
 	go func() {
 		dir := filepath.Join(common.TmpDir, "iso")
 
-		// 创建文件服务器
+		// Create file server
 		fs := http.FileServer(http.Dir(dir))
 
-		// 将文件服务器的处理程序注册到根路径
+		// Register the file server's handler to the root path
 		http.Handle("/", fs)
 
-		// 设置服务器端口
-		port := ":8888"
-		log.Printf("server starting for port to %s ，run dir: %s", port, dir)
-
-		// 启动 HTTP 服务器
-		if err := http.ListenAndServe(port, nil); err != nil {
+		port := "30888"
+		// If the port is occupied, switch to another port until an available port is found. The port range is 30888-30988.
+		for util.IsPortOccupied(port) {
+			klog.Infof("port %s is occupied, try next port", port)
+			port = fmt.Sprintf("%d", 30888+rand.Intn(100))
+			klog.Infof("try %s", port)
+		}
+		klog.Infof("server starting for port to %s , run dir: %s", port, dir)
+		serverIp := util.LocalIP()
+		if n.KubeConf.Arg.RepositoryIp != nil {
+			serverIp = n.KubeConf.Arg.RepositoryIp.String()
+		}
+		n.ModuleCache.Set("repo-address", fmt.Sprintf("http://%s:%s", serverIp, port))
+		// Start HTTP server
+		if err := http.ListenAndServe(fmt.Sprintf(":%s", port), nil); err != nil {
 			log.Fatalf("server start fail: %v", err)
 		}
 
@@ -549,11 +575,12 @@ func (a *AddLocalRepository) Execute(runtime connector.Runtime) error {
 		return errors.New("get repo failed by host cache")
 	}
 	repo := r.(repository.Interface)
-	serverIp := util.LocalIP()
-	if a.KubeConf.Arg.RepositoryIp != nil {
-		serverIp = a.KubeConf.Arg.RepositoryIp.String()
+
+	repoAddress, ok := a.ModuleCache.GetMustString("repo-address")
+	if !ok {
+		return errors.New("get repo address failed by module cache")
 	}
-	if installErr := repo.Add(runtime, fmt.Sprintf("http://%s:8888", serverIp)); installErr != nil {
+	if installErr := repo.Add(runtime, repoAddress); installErr != nil {
 		return errors.Wrap(errors.WithStack(installErr), "add local repository failed")
 	}
 	if installErr := repo.Update(runtime); installErr != nil {

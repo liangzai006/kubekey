@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
+	"net"
 	"os"
 	"os/exec"
 	"os/user"
@@ -135,4 +136,13 @@ func ArchAlias(arch string) string {
 	default:
 		return ""
 	}
+}
+
+func IsPortOccupied(port string) bool {
+	conn, err := net.Dial("tcp", fmt.Sprintf(":%s", port))
+	if err != nil {
+		return false
+	}
+	defer conn.Close()
+	return true
 }

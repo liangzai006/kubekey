@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/filesystem"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 )
 
 func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
@@ -33,6 +34,7 @@ func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.GreetingsModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
+		&kubernetes.StatusModule{},
 		&os.RepositoryModule{Skip: noArtifact},
 		&os.RepositoryOnlineModule{Skip: !noArtifact},
 		&filesystem.ChownWorkDirModule{},

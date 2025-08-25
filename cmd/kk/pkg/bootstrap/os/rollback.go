@@ -82,9 +82,12 @@ func (r *RecoverRepository) Execute(runtime connector.Runtime, result *ending.Ac
 	_ = re.Reset(runtime)
 
 	mountPath := filepath.Join(common.TmpDir, "iso")
-	umountCmd := fmt.Sprintf("umount %s", mountPath)
-	if _, err := runtime.GetRunner().SudoCmd(umountCmd, false); err != nil {
-		return errors.Wrapf(errors.WithStack(err), "umount %s failed", mountPath)
+	if checkMountExists(runtime, mountPath) {
+		umountCmd := fmt.Sprintf("umount %s", mountPath)
+		if _, err := runtime.GetRunner().SudoCmd(umountCmd, false); err != nil {
+			return errors.Wrapf(errors.WithStack(err), "umount %s failed", mountPath)
+		}
 	}
+
 	return nil
 }

@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 )
 
 type ConfigureOSModule struct {
@@ -56,13 +57,34 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	GenerateScript := &task.RemoteTask{
-		Name:  "GenerateScript",
-		Desc:  "Generate init os script",
-		Hosts: c.Runtime.GetAllHosts(),
+	GenerateOsScript := &task.RemoteTask{
+		Name:    "GenerateScript",
+		Desc:    "Generate init os script",
+		Hosts:   c.Runtime.GetAllHosts(),
+		Prepare: &kubernetes.NodeInCluster{Not: true},
 		Action: &action.Template{
 			Template: templates.InitOsScriptTmpl,
 			Dst:      filepath.Join(common.KubeScriptDir, "initOS.sh"),
+		},
+		Parallel: true,
+	}
+
+	ExecOsScript := &task.RemoteTask{
+		Name:     "ExecScript",
+		Desc:     "Exec init os script",
+		Hosts:    c.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
+		Action:   new(NodeExecScript),
+		Parallel: true,
+	}
+
+	GenerateHostsScript := &task.RemoteTask{
+		Name:  "GenerateHostsScript",
+		Desc:  "Generate init hosts script",
+		Hosts: c.Runtime.GetAllHosts(),
+		Action: &action.Template{
+			Template: templates.InitHostsScriptTmpl,
+			Dst:      filepath.Join(common.KubeScriptDir, "initHosts.sh"),
 			Data: util.Data{
 				"Hosts": templates.GenerateHosts(c.Runtime, c.KubeConf),
 			},
@@ -70,11 +92,11 @@ func (c *ConfigureOSModule) Init() {
 		Parallel: true,
 	}
 
-	ExecScript := &task.RemoteTask{
-		Name:     "ExecScript",
-		Desc:     "Exec init os script",
+	ExecHostsScript := &task.RemoteTask{
+		Name:     "ExecHostsScript",
+		Desc:     "Exec init hosts script",
 		Hosts:    c.Runtime.GetAllHosts(),
-		Action:   new(NodeExecScript),
+		Action:   new(NodeExecHostsScript),
 		Parallel: true,
 	}
 
@@ -90,8 +112,10 @@ func (c *ConfigureOSModule) Init() {
 	c.Tasks = []task.Interface{
 		getOSData,
 		initOS,
-		GenerateScript,
-		ExecScript,
+		GenerateOsScript,
+		ExecOsScript,
+		GenerateHostsScript,
+		ExecHostsScript,
 		ConfigureNtpServer,
 	}
 }
@@ -222,6 +246,7 @@ func (r *RepositoryOnlineModule) Init() {
 		Desc:     "New repository client",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(NewRepoClient),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    1,
 	}
@@ -231,6 +256,7 @@ func (r *RepositoryOnlineModule) Init() {
 		Desc:     "Install packages",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(PreInstallPackage),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    1,
 		Rollback: new(RecoverRepository),
@@ -241,6 +267,7 @@ func (r *RepositoryOnlineModule) Init() {
 		Desc:     "Custom After PreInstall Script Task",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(CustomAfterPreInstall),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    1,
 	}
@@ -250,6 +277,7 @@ func (r *RepositoryOnlineModule) Init() {
 		Desc:     "Install packages",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(InstallPackage),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    1,
 	}
@@ -259,6 +287,7 @@ func (r *RepositoryOnlineModule) Init() {
 		Desc:     "Install packages",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(PostInstallPackage),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    1,
 		Rollback: new(RecoverRepository),
@@ -269,6 +298,7 @@ func (r *RepositoryOnlineModule) Init() {
 		Desc:     "Custom After PostInstall Script Task",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(CustomAfterPostInstall),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    1,
 	}
@@ -336,6 +366,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "NewRepoClient",
 		Desc:     "New repository client",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(NewRepoClient),
 		Parallel: true,
 		Retry:    1,
@@ -346,6 +377,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "BackupOriginalRepository",
 		Desc:     "Backup original repository",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(BackupOriginalRepository),
 		Parallel: true,
 		Retry:    1,
@@ -356,6 +388,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "AddLocalRepository",
 		Desc:     "Add local repository",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(AddLocalRepository),
 		Parallel: true,
 		Retry:    1,
@@ -366,6 +399,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "InstallPrePackage",
 		Desc:     "InstallPrepackages",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(PreInstallPackage),
 		Parallel: true,
 		Retry:    1,
@@ -376,6 +410,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "CustomAfterPreInstallScriptTask",
 		Desc:     "Custom After PreInstall Script Task",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(CustomAfterPreInstall),
 		Parallel: true,
 		Retry:    1,
@@ -386,6 +421,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "InstallPackage",
 		Desc:     "Install packages",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(InstallPackage),
 		Parallel: true,
 		Retry:    1,
@@ -396,6 +432,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "InstallPostPackage",
 		Desc:     "InstallPostPackages",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(PostInstallPackage),
 		Parallel: true,
 		Retry:    1,
@@ -406,6 +443,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "CustomAfterPostInstallScriptTask",
 		Desc:     "Custom After PostInstall Script Task",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(CustomAfterPostInstall),
 		Parallel: true,
 		Retry:    1,
@@ -416,6 +454,7 @@ func (r *RepositoryModule) Init() {
 		Name:     "ResetRepository",
 		Desc:     "Reset repository to the original repository",
 		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Action:   new(ResetRepository),
 		Parallel: true,
 		Retry:    1,
@@ -464,6 +503,7 @@ func (r *AicpDirModule) Init() {
 		Desc:     "Config Aicp docker root dir",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(ConfigAicpRootDir),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    2,
 	}
@@ -473,6 +513,7 @@ func (r *AicpDirModule) Init() {
 		Desc:     "Config Aicp data dir",
 		Hosts:    r.Runtime.GetAllHosts(),
 		Action:   new(ConfigAicpDataDir),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
 		Parallel: true,
 		Retry:    2,
 	}
