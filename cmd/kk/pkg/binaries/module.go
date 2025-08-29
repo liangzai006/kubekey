@@ -140,6 +140,11 @@ func (a *K8eArtifactBinariesModule) Init() {
 
 type RegistryPackageModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (n *RegistryPackageModule) IsSkip() bool {
+	return n.Skip
 }
 
 func (n *RegistryPackageModule) Init() {

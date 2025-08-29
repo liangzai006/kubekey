@@ -17,8 +17,13 @@
 package images
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
+	"time"
 
 	"github.com/containerd/containerd/platforms"
 	"github.com/containers/image/v5/types"
@@ -27,6 +32,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
 )
 
 var defaultUserAgent = "kubekey"
@@ -187,4 +193,77 @@ func suffixImageName(imageFullName []string) string {
 		return strings.Join(imageFullName, "/")
 	}
 	return imageFullName[0]
+}
+
+type HttpClientOptions struct {
+	*http.Client
+	Auth *registry.DockerRegistryEntry
+}
+
+func NewHttpClient(auth *registry.DockerRegistryEntry) *HttpClientOptions {
+
+	var rootCAs *x509.CertPool
+	var cert tls.Certificate
+	var err error
+
+	if auth.CAFile != "" {
+		rootCAs = x509.NewCertPool()
+		if !rootCAs.AppendCertsFromPEM([]byte(auth.CAFile)) {
+			logger.Log.Warningf("Failed to append CA certificate content")
+		}
+	}
+
+	if auth.CertFile != "" && auth.KeyFile != "" {
+		cert, err = tls.X509KeyPair([]byte(auth.CertFile), []byte(auth.KeyFile))
+		if err != nil {
+			logger.Log.Warningf("Failed to load client certificate/key pair from content: %v", err)
+		}
+	}
+
+	if auth.PlainHTTP {
+		client := &http.Client{
+			Timeout: 10 * time.Second,
+		}
+		return &HttpClientOptions{
+			Client: client,
+		}
+	} else {
+		client := &http.Client{
+			Timeout: 10 * time.Second,
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs:            rootCAs,
+					Certificates:       []tls.Certificate{cert},
+					InsecureSkipVerify: auth.SkipTLSVerify,
+				},
+			},
+		}
+		return &HttpClientOptions{
+			Client: client,
+			Auth:   auth,
+		}
+	}
+}
+
+func (h *HttpClientOptions) SendRequest(method, url string, body io.Reader) (*http.Response, error) {
+
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.SetBasicAuth(h.Auth.Username, h.Auth.Password)
+	req.Header.Set("Content-Type", "application/json")
+
+	if h.Auth.PlainHTTP {
+		req.URL.Scheme = "http"
+	} else {
+		req.URL.Scheme = "https"
+	}
+
+	resp, err := h.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp, nil
 }

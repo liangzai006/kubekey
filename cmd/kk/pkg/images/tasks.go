@@ -17,17 +17,21 @@
 package images
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
+	"time"
 
 	manifestregistry "github.com/estesp/manifest-tool/v2/pkg/registry"
 	manifesttypes "github.com/estesp/manifest-tool/v2/pkg/types"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/klog/v2"
 
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
@@ -216,6 +220,63 @@ func (s *SaveImages) Execute(runtime connector.Runtime) error {
 			}
 		}
 	}
+	return nil
+}
+
+type InitProject struct {
+	common.KubeAction
+}
+
+func (i *InitProject) Execute(runtime connector.Runtime) error {
+	auths := registry.DockerRegistryAuthEntries(i.KubeConf.Cluster.Registry.Auths)
+	auth := new(registry.DockerRegistryEntry)
+	if _, ok := auths[i.KubeConf.Cluster.Registry.GetHost()]; ok {
+		auth = auths[i.KubeConf.Cluster.Registry.GetHost()]
+	}
+	if auth == nil {
+		return errors.New("")
+	}
+
+	privateRegistry := i.KubeConf.Cluster.Registry.PrivateRegistry
+	s := strings.Split(privateRegistry, "/")
+	if len(s) == 1 {
+		return errors.Errorf("invalid private registry: %s. example: dockerhub.aicp.local/aicp-common", privateRegistry)
+	}
+	domain := s[0]
+
+	client := NewHttpClient(auth)
+
+	for {
+		resp, err := client.SendRequest(http.MethodGet, fmt.Sprintf("https://%s/api/v2.0/projects?project_name=library", domain), nil)
+		if err != nil {
+			return errors.Wrap(errors.WithStack(err), "send request failed")
+		}
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound {
+			break
+		}
+		klog.Infof("wait registry start success...")
+		time.Sleep(1 * time.Second)
+	}
+
+	body := map[string]interface{}{
+		"project_name": s[1],
+		"public":       true,
+	}
+	content, err := json.Marshal(body)
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "marshal body failed")
+	}
+
+	resp, err := client.SendRequest(http.MethodPost, fmt.Sprintf("https://%s/api/v2.0/projects", domain), bytes.NewReader(content))
+	if err != nil {
+		return errors.Wrap(errors.WithStack(err), "create project failed")
+	}
+	resp.Body.Close()
+	// if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+	// 	return errors.Errorf("create project failed, status code: %d", resp.StatusCode)
+	// }
+
 	return nil
 }
 

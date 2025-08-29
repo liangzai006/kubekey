@@ -18,10 +18,11 @@ package v1alpha2
 
 import (
 	"fmt"
-	"k8s.io/klog/v2"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"k8s.io/klog/v2"
 
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,6 +47,7 @@ type ClusterSpec struct {
 	Registry             RegistryConfig       `yaml:"registry" json:"registry,omitempty"`
 	Addons               []Addon              `yaml:"addons" json:"addons,omitempty"`
 	KubeSphere           KubeSphere           `json:"kubesphere,omitempty"`
+	Aicp                 Aicp                 `yaml:"aicp" json:"aicp,omitempty"`
 }
 
 type Cluster struct {
@@ -131,6 +133,13 @@ type KubeSphere struct {
 	Enabled        bool   `json:"enabled,omitempty"`
 	Version        string `json:"version,omitempty"`
 	Configurations string `json:"configurations,omitempty"`
+}
+
+type Aicp struct {
+	Domain string   `yaml:"domain" json:"domain,omitempty"`
+	Zone   string   `yaml:"zone" json:"zone,omitempty"`
+	Hami   bool     `yaml:"hami" json:"hami,omitempty"`
+	Gpu    []string `yaml:"gpu" json:"gpu,omitempty"`
 }
 
 // GenerateCertSANs is used to generate cert sans for cluster.

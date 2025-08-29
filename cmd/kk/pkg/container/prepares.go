@@ -108,3 +108,20 @@ func (p *PrivateRegistryAuth) PreCheck(runtime connector.Runtime) (bool, error) 
 	}
 	return true, nil
 }
+
+type RegistryExist struct {
+	common.KubePrepare
+}
+
+func (r *RegistryExist) PreCheck(runtime connector.Runtime) (bool, error) {
+
+	switch r.KubeConf.Cluster.Registry.Type {
+	case common.Harbor:
+		return true, nil
+	case common.Registry:
+		return false, nil
+	}
+
+	return false, nil
+
+}

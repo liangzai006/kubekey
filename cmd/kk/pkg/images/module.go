@@ -84,6 +84,13 @@ func (c *CopyImagesToRegistryModule) Init() {
 	c.Name = "CopyImagesToRegistryModule"
 	c.Desc = "Copy images to a private registry from an artifact OCI path"
 
+	initProject := &task.LocalTask{
+		Name:    "InitProject",
+		Desc:    "Init Image private registry project",
+		Timeout: 3 * time.Minute,
+		Action:  new(InitProject),
+	}
+
 	copyImage := &task.LocalTask{
 		Name:   "CopyImagesToRegistry",
 		Desc:   "Copy images to a private registry from an artifact OCI Path",
@@ -97,6 +104,7 @@ func (c *CopyImagesToRegistryModule) Init() {
 	}
 
 	c.Tasks = []task.Interface{
+		initProject,
 		copyImage,
 		pushManifest,
 	}

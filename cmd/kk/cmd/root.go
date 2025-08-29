@@ -18,12 +18,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/clusterinfo"
 	"os"
 	"os/exec"
 	"runtime"
 	"strings"
 	"syscall"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/clusterinfo"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/cmd/coreshub"
 
 	"github.com/spf13/cobra"
 
@@ -122,6 +124,8 @@ func NewKubeKeyCommand(o KubeKeyOptions) *cobra.Command {
 	cmds.AddCommand(completion.NewCmdCompletion())
 	cmds.AddCommand(version.NewCmdVersion())
 	cmds.AddCommand(clusterinfo.NewCmdClusterInfo())
+
+	cmds.AddCommand(coreshub.NewCmdCoresHub())
 	return cmds
 }
 

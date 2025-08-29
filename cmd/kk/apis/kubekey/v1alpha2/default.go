@@ -130,7 +130,11 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*Kub
 		clusterCfg.Kubernetes.Version = DefaultKubeVersion
 	}
 	if cfg.Kubernetes.MaxPods == 0 {
-		clusterCfg.Kubernetes.MaxPods = DefaultMaxPods
+		if len(cfg.Hosts) == 1 {
+			clusterCfg.Kubernetes.MaxPods = 200
+		} else {
+			clusterCfg.Kubernetes.MaxPods = DefaultMaxPods
+		}
 	}
 	if cfg.Kubernetes.PodPidsLimit == 0 {
 		clusterCfg.Kubernetes.PodPidsLimit = DefaultPodPidsLimit

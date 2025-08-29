@@ -87,6 +87,11 @@ func (i *RegistryCertsModule) Init() {
 
 type InstallRegistryModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (i *InstallRegistryModule) IsSkip() bool {
+	return i.Skip
 }
 
 func (i *InstallRegistryModule) Init() {
