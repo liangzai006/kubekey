@@ -32,7 +32,9 @@ import (
 
 	kubekeyv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os/repository"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os/templates"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/utils"
@@ -936,47 +938,73 @@ func (g *ConfigAicpDataDir) Execute(runtime connector.Runtime) error {
 		return nil
 	}
 
-	mkdirCmd := fmt.Sprintf("mkdir -p %s", common.LongHornVolumeDir)
-	_, err := runtime.GetRunner().SudoCmd(mkdirCmd, false)
-	if err != nil {
-		return errors.Wrap(err, "failed to create longhorn volume directory")
-	}
+	modprobeCmd := "modprobe zfs"
+	runtime.GetRunner().SudoCmd(modprobeCmd, false)
 
-	if !checkFileSystemFormattedAsExt4(runtime, currentHost.ZfsDataDisk[0]) {
-		// Format file system
-		formatCmd := fmt.Sprintf("mkfs.ext4 %s", currentHost.ZfsDataDisk[0])
-		_, err := runtime.GetRunner().SudoCmd(formatCmd, false)
+	if !isZfsPoolCreated(runtime, common.AicpZpoolName) {
+		zfsCmd := fmt.Sprintf("zpool create %s %s", common.AicpZpoolName, strings.Join(currentHost.ZfsDataDisk, " "))
+		_, err := runtime.GetRunner().SudoCmd(zfsCmd, false)
 		if err != nil {
-			return errors.Wrap(err, "failed to format disk with ext4")
-		}
-	}
-
-	if !checkMountExists(runtime, common.LongHornVolumeDir) {
-		// Mount file system
-		mountCmd := fmt.Sprintf("mount  %s %s", currentHost.ZfsDataDisk[0], common.LongHornVolumeDir)
-		_, err := runtime.GetRunner().SudoCmd(mountCmd, false)
-		if err != nil {
-			return errors.Wrap(err, "failed to mount longhorn volume")
-		}
-	}
-
-	if !checkFstabEntryExists(runtime, common.LongHornVolumeDir) {
-		// Get UUID of file system
-		uuid, err := getDeviceUUID(runtime, currentHost.ZfsDataDisk[0])
-		if err != nil || uuid == "" {
-			return errors.Wrap(err, "failed to get UUID")
-		}
-
-		// Add mount information to /etc/fstab
-		fstabCmd := fmt.Sprintf("echo 'UUID=%s %s ext4 defaults 0 1' >> /etc/fstab", uuid, common.LongHornVolumeDir)
-		_, err = runtime.GetRunner().SudoCmd(fstabCmd, false)
-		if err != nil {
-			return errors.Wrap(err, "failed to add fstab entry")
+			return errors.Wrap(err, "failed to create zpool")
 		}
 	}
 
 	return nil
 }
+
+//longhorn
+// func (g *ConfigAicpDataDir) Execute(runtime connector.Runtime) error {
+// 	// Get current host information
+// 	currentHost := getCurrentHost(runtime)
+// 	if currentHost == nil {
+// 		return errors.New("current host not found")
+// 	}
+
+// 	if currentHost.ZfsDataDisk == nil || len(currentHost.ZfsDataDisk) == 0 {
+// 		return nil
+// 	}
+
+// 	mkdirCmd := fmt.Sprintf("mkdir -p %s", common.LongHornVolumeDir)
+// 	_, err := runtime.GetRunner().SudoCmd(mkdirCmd, false)
+// 	if err != nil {
+// 		return errors.Wrap(err, "failed to create longhorn volume directory")
+// 	}
+
+// 	if !checkFileSystemFormattedAsExt4(runtime, currentHost.ZfsDataDisk[0]) {
+// 		// Format file system
+// 		formatCmd := fmt.Sprintf("mkfs.ext4 %s", currentHost.ZfsDataDisk[0])
+// 		_, err := runtime.GetRunner().SudoCmd(formatCmd, false)
+// 		if err != nil {
+// 			return errors.Wrap(err, "failed to format disk with ext4")
+// 		}
+// 	}
+
+// 	if !checkMountExists(runtime, common.LongHornVolumeDir) {
+// 		// Mount file system
+// 		mountCmd := fmt.Sprintf("mount  %s %s", currentHost.ZfsDataDisk[0], common.LongHornVolumeDir)
+// 		_, err := runtime.GetRunner().SudoCmd(mountCmd, false)
+// 		if err != nil {
+// 			return errors.Wrap(err, "failed to mount longhorn volume")
+// 		}
+// 	}
+
+// 	if !checkFstabEntryExists(runtime, common.LongHornVolumeDir) {
+// 		// Get UUID of file system
+// 		uuid, err := getDeviceUUID(runtime, currentHost.ZfsDataDisk[0])
+// 		if err != nil || uuid == "" {
+// 			return errors.Wrap(err, "failed to get UUID")
+// 		}
+
+// 		// Add mount information to /etc/fstab
+// 		fstabCmd := fmt.Sprintf("echo 'UUID=%s %s ext4 defaults 0 1' >> /etc/fstab", uuid, common.LongHornVolumeDir)
+// 		_, err = runtime.GetRunner().SudoCmd(fstabCmd, false)
+// 		if err != nil {
+// 			return errors.Wrap(err, "failed to add fstab entry")
+// 		}
+// 	}
+
+// 	return nil
+// }
 
 func isZfsPoolCreated(runtime connector.Runtime, aicpZpoolName string) bool {
 	cmd := "zpool list"
@@ -1120,6 +1148,107 @@ func RunCustomScripts(runtime connector.Runtime, scripts kubekeyv1alpha2.CustomS
 	} else {
 		// keep the Materials for debug
 		fmt.Printf("Exec Bash:%s done, take %s, output:\n%s", RunBash, time.Since(start), out)
+	}
+	return nil
+}
+
+type GenerateSSHKey struct {
+	common.KubeAction
+}
+
+func (f *GenerateSSHKey) Execute(runtime connector.Runtime) error {
+
+	_, err := runtime.GetRunner().SudoCmd("ssh-keygen -t rsa -b 4096 -f /root/.ssh/id_rsa -N '' -C 'autologin@aicp.com'", false)
+	if err != nil {
+		return errors.Wrap(err, "failed to generate ssh key")
+	}
+
+	return nil
+}
+
+type GetSSHPublicKey struct {
+	common.KubeAction
+}
+
+func (f *GetSSHPublicKey) Execute(runtime connector.Runtime) error {
+	out, err := runtime.GetRunner().SudoCmd("cat /root/.ssh/id_rsa.pub", false)
+	if err != nil {
+		return errors.Wrap(err, "failed to get ssh public key")
+	}
+	f.ModuleCache.Set(fmt.Sprintf("%s_ssh_public_key", runtime.RemoteHost().GetName()), out)
+	return nil
+}
+
+type CopyMasterSSHKey struct {
+	common.KubeAction
+}
+
+func (c *CopyMasterSSHKey) Execute(runtime connector.Runtime) error {
+	hosts := runtime.GetAllHosts()
+	publicKey := []string{}
+	for _, host := range hosts {
+		sshPublicKey, ok := c.ModuleCache.Get(fmt.Sprintf("%s_ssh_public_key", host.GetName()))
+		if !ok {
+			return errors.Wrap(errors.New("failed to get ssh public key"), "failed to get ssh public key")
+		}
+		publicKey = append(publicKey, sshPublicKey.(string))
+	}
+
+	t := action.Template{
+		Template: templates.InitFreePasswdScriptTmpl,
+		Dst:      filepath.Join(common.KubeScriptDir, "initFreePasswd.sh"),
+		Data: util.Data{
+			"PublicKeys": publicKey,
+		},
+	}
+	if err := t.Execute(runtime); err != nil {
+		return errors.Wrap(err, "failed to copy master ssh key")
+	}
+	return nil
+}
+
+type CopyWorkerSSHKey struct {
+	common.KubeAction
+}
+
+func (c *CopyWorkerSSHKey) Execute(runtime connector.Runtime) error {
+
+	hosts := runtime.GetHostsByRole(common.Master)
+	publicKey := []string{}
+	for _, host := range hosts {
+		sshPublicKey, ok := c.ModuleCache.Get(fmt.Sprintf("%s_ssh_public_key", host.GetName()))
+		if !ok {
+			return errors.Wrap(errors.New("failed to get ssh public key"), "failed to get ssh public key")
+		}
+		publicKey = append(publicKey, sshPublicKey.(string))
+	}
+
+	t := action.Template{
+		Template: templates.InitFreePasswdScriptTmpl,
+		Dst:      filepath.Join(common.KubeScriptDir, "initFreePasswd.sh"),
+		Data: util.Data{
+			"PublicKeys": publicKey,
+		},
+	}
+	if err := t.Execute(runtime); err != nil {
+		return errors.Wrap(err, "failed to copy worker ssh key")
+	}
+	return nil
+
+}
+
+type ExecSSHKey struct {
+	common.KubeAction
+}
+
+func (e *ExecSSHKey) Execute(runtime connector.Runtime) error {
+
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("chmod +x %s/initFreePasswd.sh", common.KubeScriptDir), false); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to chmod +x init free passwd script")
+	}
+
+	if _, err := runtime.GetRunner().SudoCmd(fmt.Sprintf("%s/initFreePasswd.sh", common.KubeScriptDir), true); err != nil {
+		return errors.Wrap(errors.WithStack(err), "Failed to execute init free passwd script")
 	}
 	return nil
 }

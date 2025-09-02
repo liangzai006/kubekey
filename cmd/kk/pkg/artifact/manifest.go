@@ -52,7 +52,8 @@ func CreateManifest(arg common.Argument, name string) error {
 	archSet := mapset.NewThreadUnsafeSet()
 	containerSet := mapset.NewThreadUnsafeSet()
 	imagesSet := mapset.NewThreadUnsafeSet()
-	osSet := mapset.NewThreadUnsafeSet()
+	// osSet := mapset.NewThreadUnsafeSet()
+	osSet := make(map[string]kubekeyv1alpha2.OperatingSystem)
 
 	maxKubeletVersion := versionutil.MustParseGeneric("v0.0.0")
 	kubernetesDistribution := kubekeyv1alpha2.KubernetesDistribution{}
@@ -116,7 +117,7 @@ func CreateManifest(arg common.Argument, name string) error {
 			Version: version,
 			OsImage: node.Status.NodeInfo.OSImage,
 		}
-		osSet.Add(osObj)
+		osSet[osObj.Id] = osObj
 
 		kubeletStrArr := strings.Split(node.Status.NodeInfo.KubeletVersion, "+")
 		kubeletVersion := kubeletStrArr[0]
@@ -142,10 +143,9 @@ func CreateManifest(arg common.Argument, name string) error {
 		image := v.(string)
 		imageArr = append(imageArr, image)
 	}
-	osArr := make([]kubekeyv1alpha2.OperatingSystem, 0, osSet.Cardinality())
-	for _, v := range osSet.ToSlice() {
-		osObj := v.(kubekeyv1alpha2.OperatingSystem)
-		osArr = append(osArr, osObj)
+	osArr := make([]kubekeyv1alpha2.OperatingSystem, 0, len(osSet))
+	for _, v := range osSet {
+		osArr = append(osArr, v)
 	}
 	containerArr := make([]kubekeyv1alpha2.ContainerRuntime, 0, containerSet.Cardinality())
 	for _, v := range containerSet.ToSlice() {

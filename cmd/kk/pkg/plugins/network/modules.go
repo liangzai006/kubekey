@@ -33,6 +33,11 @@ import (
 
 type DeployNetworkPluginModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (d *DeployNetworkPluginModule) IsSkip() bool {
+	return d.Skip
 }
 
 func (d *DeployNetworkPluginModule) Init() {

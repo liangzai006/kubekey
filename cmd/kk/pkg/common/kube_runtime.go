@@ -61,6 +61,8 @@ type Argument struct {
 	Role                string
 	Type                string
 	RepositoryIp        net.IP
+	Force               bool
+	FreePasswd          bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {
@@ -108,6 +110,9 @@ func (k *KubeRuntime) Copy() connector.Runtime {
 }
 
 func (k *KubeRuntime) IsStepSkip(skip string) bool {
+	if k.Arg.Force {
+		return false
+	}
 	_, err := os.Stat(path.Join(k.GetWorkDir(), "step", skip))
 	return err == nil
 }

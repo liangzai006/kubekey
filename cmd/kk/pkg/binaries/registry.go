@@ -69,7 +69,7 @@ func RegistryPackageDownloadHTTP(kubeConf *common.KubeConf, path, arch string, p
 		}
 	}
 
-	pipelineCache.Set(common.KubeBinaries+"-"+arch, binariesMap)
+	pipelineCache.Set(common.KubeBinaries+"-registry-"+arch, binariesMap)
 	return nil
 }
 

@@ -64,3 +64,20 @@ func (d *DeleteNode) PreCheck(runtime connector.Runtime) (bool, error) {
 
 	return false, nil
 }
+
+type SShPublickeyPrepare struct {
+	common.KubePrepare
+	Not bool
+}
+
+func (g *SShPublickeyPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
+	exist, err := runtime.GetRunner().FileExist("/root/.ssh/id_rsa")
+	if err != nil {
+		return false, err
+	}
+	if exist {
+		return !g.Not, nil
+	}
+
+	return g.Not, nil
+}

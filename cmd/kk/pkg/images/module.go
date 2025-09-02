@@ -102,10 +102,16 @@ func (c *CopyImagesToRegistryModule) Init() {
 		Desc:   "Push multi-arch manifest to private registry",
 		Action: new(PushManifest),
 	}
+	skipConfigureOS := &task.LocalTask{
+		Name:   "SkipConfigureOS",
+		Desc:   "Skip configure os",
+		Action: &common.StepOSModule{Step: "initRegistry"},
+	}
 
 	c.Tasks = []task.Interface{
 		initProject,
 		copyImage,
 		pushManifest,
+		skipConfigureOS,
 	}
 }

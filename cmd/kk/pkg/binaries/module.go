@@ -26,6 +26,11 @@ import (
 
 type NodeBinariesModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (n *NodeBinariesModule) IsSkip() bool {
+	return n.Skip
 }
 
 func (n *NodeBinariesModule) Init() {

@@ -19,6 +19,11 @@ import (
 
 type DeployPluginsModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (d *DeployPluginsModule) IsSkip() bool {
+	return d.Skip
 }
 
 func (d *DeployPluginsModule) Init() {

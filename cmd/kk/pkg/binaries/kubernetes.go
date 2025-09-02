@@ -85,18 +85,6 @@ func K8sFilesDownloadHTTP(kubeConf *common.KubeConf, path, version, arch string,
 		}
 	}
 
-	if kubeConf.Cluster.KubeSphere.Version == "v2.1.1" {
-		logger.Log.Infoln(fmt.Sprintf("Downloading %s ...", "helm2"))
-		if util.IsExist(fmt.Sprintf("%s/helm2", helm.BaseDir)) == false {
-			cmd := kubeConf.Arg.DownloadCommand(fmt.Sprintf("%s/helm2", helm.BaseDir),
-				fmt.Sprintf("https://kubernetes-helm.pek3b.qingstor.com/linux-%s/%s/helm", helm.Arch, "v2.16.9"))
-			if output, err := exec.Command("/bin/sh", "-c", cmd).CombinedOutput(); err != nil {
-				fmt.Println(string(output))
-				return errors.Wrap(err, "Failed to download helm2 binary")
-			}
-		}
-	}
-
 	pipelineCache.Set(common.KubeBinaries+"-"+arch, binariesMap)
 	return nil
 }

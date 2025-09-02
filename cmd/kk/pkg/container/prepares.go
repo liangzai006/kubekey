@@ -109,15 +109,41 @@ func (p *PrivateRegistryAuth) PreCheck(runtime connector.Runtime) (bool, error) 
 	return true, nil
 }
 
+type ComposeExist struct {
+	common.KubePrepare
+	Not bool
+}
+
+func (c *ComposeExist) PreCheck(runtime connector.Runtime) (bool, error) {
+	output, err := runtime.GetRunner().SudoCmd("if [ -z $(command -v docker-compose) ]; "+
+		"then echo 'not exist'; "+
+		"fi", false)
+	if err != nil {
+		return false, err
+	}
+	if strings.Contains(output, "not exist") {
+		return c.Not, nil
+	}
+	return !c.Not, nil
+}
+
 type RegistryExist struct {
 	common.KubePrepare
+	Not bool
 }
 
 func (r *RegistryExist) PreCheck(runtime connector.Runtime) (bool, error) {
 
 	switch r.KubeConf.Cluster.Registry.Type {
 	case common.Harbor:
-		return true, nil
+		output, err := runtime.GetRunner().SudoCmd("systemctl is-active harbor", false)
+		if err != nil {
+			return true, err
+		}
+		if strings.Contains(output, "active") {
+			return !r.Not, nil
+		}
+		return r.Not, nil
 	case common.Registry:
 		return false, nil
 	}

@@ -34,6 +34,7 @@ type DeployOptions struct {
 	DownloadCmd         string
 	Artifact            string
 	InstallPackages     bool
+	Force               bool
 }
 
 func NewDeployOptions() *DeployOptions {
@@ -88,6 +89,7 @@ func (o *DeployOptions) Run() error {
 		InstallPackages:     o.InstallPackages,
 		IsAicpCluster:       true,
 		Namespace:           o.CommonOptions.Namespace,
+		Force:               o.Force,
 	}
 
 	return pipelines.CoresHubDeploy(arg, o.DownloadCmd)
@@ -100,6 +102,7 @@ func (o *DeployOptions) AddFlags(cmd *cobra.Command) {
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
+	cmd.Flags().BoolVarP(&o.Force, "force", "", false, "force to deploy")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

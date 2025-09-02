@@ -37,6 +37,11 @@ import (
 
 type StatusModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (k *StatusModule) IsSkip() bool {
+	return k.Skip
 }
 
 func (k *StatusModule) Init() {
@@ -62,6 +67,11 @@ func (k *StatusModule) Init() {
 
 type InstallKubeBinariesModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (i *InstallKubeBinariesModule) IsSkip() bool {
+	return i.Skip
 }
 
 func (i *InstallKubeBinariesModule) Init() {
@@ -132,6 +142,11 @@ func (i *InstallKubeBinariesModule) Init() {
 
 type InitKubernetesModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (i *InitKubernetesModule) IsSkip() bool {
+	return i.Skip
 }
 
 func (i *InitKubernetesModule) Init() {
@@ -238,6 +253,11 @@ func (i *InitKubernetesModule) Init() {
 
 type JoinNodesModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (j *JoinNodesModule) IsSkip() bool {
+	return j.Skip
 }
 
 func (j *JoinNodesModule) Init() {
@@ -672,6 +692,11 @@ func (p *ProgressiveUpgradeModule) Until() (*bool, error) {
 
 type SaveKubeConfigModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (s *SaveKubeConfigModule) IsSkip() bool {
+	return s.Skip
 }
 
 func (s *SaveKubeConfigModule) Init() {
@@ -692,6 +717,11 @@ func (s *SaveKubeConfigModule) Init() {
 
 type ConfigureKubernetesModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (c *ConfigureKubernetesModule) IsSkip() bool {
+	return c.Skip
 }
 
 func (c *ConfigureKubernetesModule) Init() {

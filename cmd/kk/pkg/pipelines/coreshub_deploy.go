@@ -52,44 +52,46 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{},
-		&artifact.UnArchiveModule{Skip: noArtifact},
-		&kubernetes.StatusModule{},
-		&os.RepositoryModule{Skip: noArtifact && !runtime.Arg.InstallPackages},
-		&binaries.NodeBinariesModule{},
-		&binaries.RegistryPackageModule{Skip: runtime.Cluster.Registry.PrivateRegistry == ""},
-		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
-		&os.AicpDirModule{Skip: !runtime.Arg.IsAicpCluster},
-		&registry.RegistryCertsModule{Skip: runtime.Cluster.Registry.PrivateRegistry == ""},
-		&registry.InstallRegistryModule{Skip: runtime.Cluster.Registry.PrivateRegistry == ""},
-
+		&os.FreePasswdModule{Skip: !runtime.Arg.FreePasswd},
+		&artifact.UnArchiveModule{Skip: noArtifact || runtime.IsStepSkip("initOs")},
+		&kubernetes.StatusModule{Skip: runtime.IsStepSkip("initOs")},
+		&os.RepositoryModule{Skip: noArtifact && !runtime.Arg.InstallPackages || runtime.IsStepSkip("initOs")},
+		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS || runtime.IsStepSkip("initOs")},
+		&os.AicpDirModule{Skip: runtime.IsStepSkip("initOs")},
+		/** deploy registry **/
+		&binaries.RegistryPackageModule{Skip: runtime.Cluster.Registry.PrivateRegistry == "" || runtime.IsStepSkip("initRegistry")},
+		&registry.RegistryCertsModule{Skip: runtime.Cluster.Registry.PrivateRegistry == "" || runtime.IsStepSkip("initRegistry")},
+		&registry.InstallRegistryModule{Skip: runtime.Cluster.Registry.PrivateRegistry == "" || runtime.IsStepSkip("initRegistry")},
+		&images.CopyImagesToRegistryModule{Skip: skipPushImages || runtime.IsStepSkip("initRegistry")},
+		/** deploy kubernetes **/
+		&binaries.NodeBinariesModule{Skip: runtime.IsStepSkip("createCluster")},
 		&filesystem.ChownWorkDirModule{},
-		&container.InstallContainerModule{},
-		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker"},
-		&images.CopyImagesToRegistryModule{Skip: skipPushImages},
-		&images.PullModule{Skip: runtime.Arg.SkipPullImages},
-		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
-		&etcd.CertsModule{},
-		&etcd.InstallETCDBinaryModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
-		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
-		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey},
-		&kubernetes.InstallKubeBinariesModule{},
+		&container.InstallContainerModule{Skip: runtime.IsStepSkip("createCluster")},
+		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker" || runtime.IsStepSkip("createCluster")},
+		&images.PullModule{Skip: runtime.Arg.SkipPullImages || runtime.IsStepSkip("createCluster")},
+		&etcd.PreCheckModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey || runtime.IsStepSkip("createCluster")},
+		&etcd.CertsModule{Skip: runtime.IsStepSkip("createCluster")},
+		&etcd.InstallETCDBinaryModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey || runtime.IsStepSkip("createCluster")},
+		&etcd.ConfigureModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey || runtime.IsStepSkip("createCluster")},
+		&etcd.BackupModule{Skip: runtime.Cluster.Etcd.Type != kubekeyapiv1alpha2.KubeKey || runtime.IsStepSkip("createCluster")},
+		&kubernetes.InstallKubeBinariesModule{Skip: runtime.IsStepSkip("createCluster")},
 		// init kubeVip on first master
-		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
-		&kubernetes.InitKubernetesModule{},
-		&dns.ClusterDNSModule{},
-		&kubernetes.StatusModule{},
-		&kubernetes.JoinNodesModule{},
+		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip() || runtime.IsStepSkip("createCluster")},
+		&kubernetes.InitKubernetesModule{Skip: runtime.IsStepSkip("createCluster")},
+		&dns.ClusterDNSModule{Skip: runtime.IsStepSkip("createCluster")},
+		&kubernetes.StatusModule{Skip: runtime.IsStepSkip("createCluster")},
+		&kubernetes.JoinNodesModule{Skip: runtime.IsStepSkip("createCluster")},
 		// deploy kubeVip on other masters
-		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},
-		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled()},
-		&network.DeployNetworkPluginModule{},
-		&kubernetes.ConfigureKubernetesModule{},
+		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip() || runtime.IsStepSkip("createCluster")},
+		&loadbalancer.HaproxyModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabled() || runtime.IsStepSkip("createCluster")},
+		&network.DeployNetworkPluginModule{Skip: runtime.IsStepSkip("createCluster")},
+		&kubernetes.ConfigureKubernetesModule{Skip: runtime.IsStepSkip("createCluster")},
 		&filesystem.ChownModule{},
-		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts()},
-		&kubernetes.SecurityEnhancementModule{Skip: !runtime.Arg.SecurityEnhancement},
-		&kubernetes.SaveKubeConfigModule{},
-		&plugins.DeployPluginsModule{},
-		&addons.AddonsModule{},
+		&certs.AutoRenewCertsModule{Skip: !runtime.Cluster.Kubernetes.EnableAutoRenewCerts() || runtime.IsStepSkip("createCluster")},
+		&kubernetes.SecurityEnhancementModule{Skip: !runtime.Arg.SecurityEnhancement || runtime.IsStepSkip("createCluster")},
+		&kubernetes.SaveKubeConfigModule{Skip: runtime.IsStepSkip("createCluster")},
+		&plugins.DeployPluginsModule{Skip: runtime.IsStepSkip("createCluster")},
+		&addons.AddonsModule{Skip: runtime.IsStepSkip("createCluster")},
 		&customscripts.CustomScriptsModule{Phase: "PostInstall", Scripts: runtime.Cluster.System.PostInstall},
 	}
 
@@ -101,13 +103,6 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 	if err := p.Start(); err != nil {
 		return err
 	}
-
-	fmt.Print(`CoresHub deployment is complete.
-
-Please check the result using the command:
-
-	kubectl get pod -A
-`)
 
 	return nil
 }

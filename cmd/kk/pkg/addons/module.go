@@ -39,8 +39,14 @@ func (a *AddonsModule) Init() {
 		Desc:   "Install addons",
 		Action: new(Install),
 	}
+	skipConfigureOS := &task.LocalTask{
+		Name:   "SkipConfigureOS",
+		Desc:   "Skip configure os",
+		Action: &common.StepOSModule{Step: "createCluster"},
+	}
 
 	a.Tasks = []task.Interface{
 		install,
+		skipConfigureOS,
 	}
 }

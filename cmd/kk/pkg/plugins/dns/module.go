@@ -30,6 +30,11 @@ import (
 
 type ClusterDNSModule struct {
 	common.KubeModule
+	Skip bool
+}
+
+func (c *ClusterDNSModule) IsSkip() bool {
+	return c.Skip
 }
 
 func (c *ClusterDNSModule) Init() {
@@ -47,7 +52,7 @@ func (c *ClusterDNSModule) Init() {
 			Template: templates.CorednsConfigMap,
 			Dst:      filepath.Join(common.KubeConfigDir, templates.CorednsConfigMap.Name()),
 			Data: util.Data{
-				"DNSEtcHosts":        c.KubeConf.Cluster.DNS.DNSEtcHosts,
+				"DNSEtcHosts":        templates.GenerateDnsHosts(c.Runtime, c.KubeConf),
 				"ExternalZones":      c.KubeConf.Cluster.DNS.CoreDNS.ExternalZones,
 				"AdditionalConfigs":  c.KubeConf.Cluster.DNS.CoreDNS.AdditionalConfigs,
 				"RewriteBlock":       c.KubeConf.Cluster.DNS.CoreDNS.RewriteBlock,
@@ -130,7 +135,7 @@ func (c *ClusterDNSModule) Init() {
 			Dst:      filepath.Join(common.KubeConfigDir, templates.NodeLocalDNSService.Name()),
 			Data: util.Data{
 				"NodelocaldnsImage": images.GetImage(c.Runtime, c.KubeConf, "k8s-dns-node-cache").ImageName(),
-				"DNSEtcHosts":       c.KubeConf.Cluster.DNS.DNSEtcHosts,
+				"DNSEtcHosts":       templates.GenerateDnsHosts(c.Runtime, c.KubeConf),
 			},
 		},
 		Parallel: true,

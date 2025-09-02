@@ -122,6 +122,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*Kub
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
 	clusterCfg.KubeSphere = cfg.KubeSphere
+	clusterCfg.Aicp = cfg.Aicp
 
 	if cfg.Kubernetes.ClusterName == "" {
 		clusterCfg.Kubernetes.ClusterName = DefaultClusterName

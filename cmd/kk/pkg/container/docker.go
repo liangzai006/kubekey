@@ -18,9 +18,10 @@ package container
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"path/filepath"
 	"strings"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/container/templates"
@@ -97,14 +98,13 @@ func (s *SyncCriDockerdBinaries) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-
 type GenerateDockerConfig struct {
 	common.KubeAction
 }
 
 func (e *GenerateDockerConfig) Execute(runtime connector.Runtime) error {
 	template := templates.DockerConfig
-	dst:= filepath.Join("/etc/docker/", templates.DockerConfig.Name())
+	dst := filepath.Join("/etc/docker/", templates.DockerConfig.Name())
 	data := util.Data{
 		"Mirrors":               templates.Mirrors(e.KubeConf),
 		"InsecureRegistries":    templates.InsecureRegistries(e.KubeConf),

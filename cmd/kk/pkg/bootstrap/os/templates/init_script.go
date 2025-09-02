@@ -266,16 +266,20 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 
 	for _, host := range runtime.GetAllHosts() {
 		if host.GetName() != "" {
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				host.GetInternalIPv4Address(),
-				host.GetName(),
-				kubeConf.Cluster.Kubernetes.ClusterName,
-				host.GetName()))
-			hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
-				host.GetInternalIPv6Address(),
-				host.GetName(),
-				kubeConf.Cluster.Kubernetes.ClusterName,
-				host.GetName()))
+			if host.GetInternalIPv4Address() != "" {
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
+					host.GetInternalIPv4Address(),
+					host.GetName(),
+					kubeConf.Cluster.Kubernetes.ClusterName,
+					host.GetName()))
+			}
+			if host.GetInternalIPv6Address() != "" {
+				hostsList = append(hostsList, fmt.Sprintf("%s  %s.%s %s",
+					host.GetInternalIPv6Address(),
+					host.GetName(),
+					kubeConf.Cluster.Kubernetes.ClusterName,
+					host.GetName()))
+			}
 		}
 	}
 
@@ -298,3 +302,33 @@ func GenerateHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf) [
 	hostsList = append(hostsList, lbHost)
 	return hostsList
 }
+
+var InitFreePasswdScriptTmpl = template.Must(template.New("initFreePasswd.sh").Parse(
+	dedent.Dedent(`#!/usr/bin/env bash
+
+# Copyright 2020 The KubeSphere Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+sed -i ':a;$!{N;ba};s@# kubekey free-passwd BEGIN.*# kubekey free-passwd END@@' /root/.ssh/authorized_keys
+sed -i '/^$/N;/\n$/N;//D' /root/.ssh/authorized_keys
+
+cat >>/root/.ssh/authorized_keys<<EOF
+# kubekey free-passwd BEGIN
+{{- range .PublicKeys }}
+{{ . }}
+{{- end }}
+# kubekey free-passwd END
+EOF
+
+	`)))

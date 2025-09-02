@@ -252,6 +252,7 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Name:     "InstallDockerCompose",
 		Desc:     "Install docker compose",
 		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
+		Prepare:  &container.ComposeExist{Not: true},
 		Action:   new(InstallDockerCompose),
 		Parallel: true,
 		Retry:    2,
@@ -259,8 +260,11 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 
 	// Install Harbor
 	syncHarborPackage := &task.RemoteTask{
-		Name:     "SyncHarborPackage",
-		Desc:     "Sync harbor package",
+		Name: "SyncHarborPackage",
+		Desc: "Sync harbor package",
+		Prepare: &prepare.PrepareCollection{
+			&container.RegistryExist{Not: true},
+		},
 		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
 		Action:   new(SyncHarborPackage),
 		Parallel: true,
@@ -272,6 +276,9 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Name:  "GenerateHarborService",
 		Desc:  "Generate harbor service",
 		Hosts: i.Runtime.GetHostsByRole(common.Registry),
+		Prepare: &prepare.PrepareCollection{
+			&container.RegistryExist{Not: true},
+		},
 		Action: &action.Template{
 			Template: templates.HarborServiceTempl,
 			Dst:      "/etc/systemd/system/harbor.service",
@@ -284,18 +291,24 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 	}
 
 	generateHarborConfig := &task.RemoteTask{
-		Name:     "GenerateHarborConfig",
-		Desc:     "Generate harbor config",
-		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
+		Name:  "GenerateHarborConfig",
+		Desc:  "Generate harbor config",
+		Hosts: i.Runtime.GetHostsByRole(common.Registry),
+		Prepare: &prepare.PrepareCollection{
+			&container.RegistryExist{Not: true},
+		},
 		Action:   new(GenerateHarborConfig),
 		Parallel: true,
 		Retry:    1,
 	}
 
 	startHarbor := &task.RemoteTask{
-		Name:     "StartHarbor",
-		Desc:     "start harbor",
-		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
+		Name:  "StartHarbor",
+		Desc:  "start harbor",
+		Hosts: i.Runtime.GetHostsByRole(common.Registry),
+		Prepare: &prepare.PrepareCollection{
+			&container.RegistryExist{Not: true},
+		},
 		Action:   new(StartHarbor),
 		Parallel: true,
 		Retry:    2,

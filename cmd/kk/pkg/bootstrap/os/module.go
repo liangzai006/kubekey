@@ -517,9 +517,71 @@ func (r *AicpDirModule) Init() {
 		Parallel: true,
 		Retry:    2,
 	}
+	skipConfigureOS := &task.LocalTask{
+		Name:   "SkipConfigureOS",
+		Desc:   "Skip configure os",
+		Action: &common.StepOSModule{Step: "initOs"},
+	}
 
 	r.Tasks = []task.Interface{
 		configRootDir,
 		configDataDir,
+		skipConfigureOS,
+	}
+}
+
+type FreePasswdModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (r *FreePasswdModule) IsSkip() bool {
+	return r.Skip
+}
+
+func (r *FreePasswdModule) Init() {
+	r.Name = "SSHFreePasswdModule"
+	r.Desc = "SSH Node Free passwd"
+
+	generateFreePasswd := &task.RemoteTask{
+		Name:     "GenerateFreePasswd",
+		Desc:     "Generate Free passwd",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Prepare:  &SShPublickeyPrepare{Not: true},
+		Action:   new(GenerateSSHKey),
+		Parallel: false,
+	}
+	getSSHPublicKey := &task.RemoteTask{
+		Name:    "GetSSHPublicKey",
+		Desc:    "Get SSH public key",
+		Prepare: &SShPublickeyPrepare{Not: false},
+		Hosts:   r.Runtime.GetAllHosts(),
+		Action:  new(GetSSHPublicKey),
+	}
+	copyMasterSSHKey := &task.RemoteTask{
+		Name:   "CopyMasterSSHKey",
+		Desc:   "Copy Master SSH key",
+		Hosts:  r.Runtime.GetHostsByRole(common.Master),
+		Action: new(CopyMasterSSHKey),
+	}
+	copyWorkerSSHKey := &task.RemoteTask{
+		Name:   "CopyWorkerSSHKey",
+		Desc:   "Copy Worker SSH key",
+		Hosts:  r.Runtime.GetHostsByRole(common.Worker),
+		Action: new(CopyWorkerSSHKey),
+	}
+	execSSHKey := &task.RemoteTask{
+		Name:   "ExecSSHKey",
+		Desc:   "Exec SSH key",
+		Hosts:  r.Runtime.GetHostsByRole(common.Master),
+		Action: new(ExecSSHKey),
+	}
+
+	r.Tasks = []task.Interface{
+		generateFreePasswd,
+		getSSHPublicKey,
+		copyMasterSSHKey,
+		copyWorkerSSHKey,
+		execSSHKey,
 	}
 }
