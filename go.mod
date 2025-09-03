@@ -1,6 +1,6 @@
 module github.com/kubesphere/kubekey/v3
 
-go 1.19
+go 1.23
 
 replace (
 	github.com/docker/distribution => github.com/docker/distribution v2.8.1+incompatible
