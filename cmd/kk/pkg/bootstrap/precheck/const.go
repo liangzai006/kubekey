@@ -30,12 +30,9 @@ const (
 	docker     = "docker"
 	containerd = "containerd"
 	showmount  = "showmount"
-	rbd        = "rbd"
-	glusterfs  = "glusterfs"
-
 	// extra command tools
-	nfs  = "nfs"
-	ceph = "ceph"
+	nfs   = "nfs"
+	zpool = "zpool"
 
 	UnknownVersion = "UnknownVersion"
 )
@@ -54,6 +51,5 @@ var baseSoftware = []string{
 	docker,
 	containerd,
 	showmount,
-	rbd,
-	glusterfs,
+	zpool,
 }

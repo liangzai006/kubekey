@@ -77,10 +77,6 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 		switch software {
 		case showmount:
 			software = nfs
-		case rbd:
-			software = ceph
-		case glusterfs:
-			software = glusterfs
 		}
 		if err != nil || strings.Contains(res, "not found") {
 			results[software] = ""
@@ -110,6 +106,47 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 	} else {
 		host.GetCache().Set(common.NodePreCheck, results)
 	}
+	return nil
+}
+
+type ConfigCheck struct {
+	common.KubeAction
+	Skip bool
+}
+
+func (c *ConfigCheck) IsSkip() bool {
+	return c.Skip
+}
+
+func (c *ConfigCheck) Execute(runtime connector.Runtime) error {
+	resultMap := make(map[string]string)
+	// check  driver
+	for _, host := range c.KubeConf.Cluster.Hosts {
+		if host.DockerRootDisk == "" {
+			resultMap["dockerDriver"] = fmt.Sprintf("%s: %s", host.Name, "docker root disk is required")
+		} else if len(host.ZfsDataDisk) > 0 {
+			for _, zfsDataDisk := range host.ZfsDataDisk {
+				if strings.Contains(zfsDataDisk, host.DockerRootDisk) {
+					resultMap["zfsDataDisk"] = fmt.Sprintf("%s: %s", host.Name, "ZFS disk has been used by Docker")
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+type NodeConfigCheck struct {
+	common.KubeAction
+	Skip bool
+}
+
+func (n *NodeConfigCheck) IsSkip() bool {
+	return n.Skip
+}
+
+func (n *NodeConfigCheck) Execute(runtime connector.Runtime) error {
+
 	return nil
 }
 

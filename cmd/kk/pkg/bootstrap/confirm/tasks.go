@@ -18,6 +18,7 @@ package confirm
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"regexp"
@@ -28,7 +29,6 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
-	"github.com/mitchellh/mapstructure"
 	"github.com/modood/table"
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
@@ -48,10 +48,9 @@ type PreCheckResults struct {
 	Chronyd    string `table:"chrony"`
 	Docker     string `table:"docker"`
 	Containerd string `table:"containerd"`
-	Nfs        string `table:"nfs client"`
-	Ceph       string `table:"ceph client"`
-	Glusterfs  string `table:"glusterfs client"`
-	Time       string `table:"time"`
+	// Nfs        string `table:"nfs client"`
+	Zfs  string `table:"zfs" yaml:"zpool" json:"zpool"`
+	Time string `table:"time"`
 }
 
 type InstallationConfirm struct {
@@ -75,28 +74,35 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 
 	for node := range pre {
 		var result PreCheckResults
-		_ = mapstructure.Decode(pre[node], &result)
+		data, err := json.Marshal(pre[node])
+		if err != nil {
+			return err
+		}
+		_ = json.Unmarshal(data, &result)
 		results = append(results, result)
 	}
 	table.OutputA(results)
 	reader := bufio.NewReader(os.Stdin)
 
-	if i.KubeConf.Arg.Artifact == "" {
-		for _, host := range results {
-			if host.Sudo == "" {
-				logger.Log.Errorf("%s: sudo is required.", host.Name)
-				stopFlag = true
-			}
+	for _, host := range results {
+		if host.Sudo == "" {
+			logger.Log.Errorf("%s: sudo is required.", host.Name)
+			stopFlag = true
+		}
 
-			if host.Conntrack == "" {
-				logger.Log.Errorf("%s: conntrack is required.", host.Name)
-				stopFlag = true
-			}
+		if host.Conntrack == "" {
+			logger.Log.Errorf("%s: conntrack is required.", host.Name)
+			stopFlag = true
+		}
 
-			if host.Socat == "" {
-				logger.Log.Errorf("%s: socat is required.", host.Name)
-				stopFlag = true
-			}
+		if host.Socat == "" {
+			logger.Log.Errorf("%s: socat is required.", host.Name)
+			stopFlag = true
+		}
+
+		if host.Zfs == "" {
+			logger.Log.Errorf("%s: zfs is required.", host.Name)
+			stopFlag = true
 		}
 	}
 
@@ -196,7 +202,11 @@ func (u *UpgradeConfirm) Execute(runtime connector.Runtime) error {
 	results := make([]PreCheckResults, len(pre), len(pre))
 	for i := range pre {
 		var result PreCheckResults
-		_ = mapstructure.Decode(pre[i], &result)
+		data, err := json.Marshal(pre[i])
+		if err != nil {
+			return err
+		}
+		_ = json.Unmarshal(data, &result)
 		results[i] = result
 	}
 	table.OutputA(results)
