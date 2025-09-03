@@ -18,6 +18,7 @@ package pipelines
 
 import (
 	"fmt"
+
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/artifact"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/binaries"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/bootstrap/os"
@@ -28,6 +29,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/module"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/pipeline"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/filesystem"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
 	"github.com/pkg/errors"
 )
 
@@ -37,6 +39,7 @@ func NewInitRegistryPipeline(runtime *common.KubeRuntime) error {
 	m := []module.Module{
 		&precheck.GreetingsModule{},
 		&artifact.UnArchiveModule{Skip: noArtifact},
+		&kubernetes.StatusModule{},
 		&binaries.RegistryPackageModule{},
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
 		&registry.RegistryCertsModule{},
