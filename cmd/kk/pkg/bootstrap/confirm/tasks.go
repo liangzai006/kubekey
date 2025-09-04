@@ -85,24 +85,26 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	for _, host := range results {
-		if host.Sudo == "" {
-			logger.Log.Errorf("%s: sudo is required.", host.Name)
-			stopFlag = true
-		}
+		if i.KubeConf.Arg.Artifact == "" {
+			if host.Sudo == "" {
+				logger.Log.Errorf("%s: sudo is required.", host.Name)
+				stopFlag = true
+			}
 
-		if host.Conntrack == "" {
-			logger.Log.Errorf("%s: conntrack is required.", host.Name)
-			stopFlag = true
-		}
+			if host.Conntrack == "" {
+				logger.Log.Errorf("%s: conntrack is required.", host.Name)
+				stopFlag = true
+			}
 
-		if host.Socat == "" {
-			logger.Log.Errorf("%s: socat is required.", host.Name)
-			stopFlag = true
-		}
+			if host.Socat == "" {
+				logger.Log.Errorf("%s: socat is required.", host.Name)
+				stopFlag = true
+			}
 
-		if host.Zfs == "" {
-			logger.Log.Errorf("%s: zfs is required.", host.Name)
-			stopFlag = true
+			if host.Zfs == "" {
+				logger.Log.Errorf("%s: zfs is required.", host.Name)
+				stopFlag = true
+			}
 		}
 	}
 

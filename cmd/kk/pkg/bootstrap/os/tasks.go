@@ -21,6 +21,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -484,11 +485,17 @@ func (n *NewRepoServer) Execute(runtime connector.Runtime) error {
 	go func() {
 		dir := filepath.Join(common.TmpDir, "iso")
 
-		// Create file server
-		fs := http.FileServer(http.Dir(dir))
-
-		// Register the file server's handler to the root path
-		http.Handle("/", fs)
+		/**
+		handle file server
+		**/
+		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			path, err := url.PathUnescape(r.URL.Path)
+			if err != nil {
+				http.Error(w, "bad request", http.StatusBadRequest)
+				return
+			}
+			http.ServeFile(w, r, filepath.Join(dir, path))
+		})
 
 		port := "30888"
 		// If the port is occupied, switch to another port until an available port is found. The port range is 30888-30988.
