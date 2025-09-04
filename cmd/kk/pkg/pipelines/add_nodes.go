@@ -54,7 +54,7 @@ func NewAddNodesPipeline(runtime *common.KubeRuntime) error {
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
-		&os.AicpDirModule{Skip: !runtime.Arg.IsAicpCluster},
+		&os.AicpDirModule{},
 		&registry.RegistryCertsModule{Skip: len(runtime.GetHostsByRole(common.Registry)) == 0},
 		//for one master to multi master kube-vip
 		&loadbalancer.KubevipModule{Skip: !runtime.Cluster.ControlPlaneEndpoint.IsInternalLBEnabledVip()},

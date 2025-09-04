@@ -54,7 +54,6 @@ type Argument struct {
 	KubeConfig          string
 	Artifact            string
 	InstallPackages     bool
-	IsAicpCluster       bool
 	ImagesDir           string
 	Namespace           string
 	DeleteCRI           bool
@@ -63,6 +62,7 @@ type Argument struct {
 	RepositoryIp        net.IP
 	Force               bool
 	FreePasswd          bool
+	AicpWorkDir         string
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {

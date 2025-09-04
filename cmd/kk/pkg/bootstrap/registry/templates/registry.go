@@ -14,8 +14,9 @@ limitations under the License.
 package templates
 
 import (
-	"github.com/lithammer/dedent"
 	"text/template"
+
+	"github.com/lithammer/dedent"
 )
 
 var (
@@ -42,7 +43,7 @@ storage:
     cache:
         layerinfo: inmemory
     filesystem:
-        rootdirectory: /mnt/registry
+        rootdirectory: {{ .DataRoot }}
 http:
     addr: :443
     tls:

@@ -236,7 +236,7 @@ func (g *GenerateHarborConfig) Execute(runtime connector.Runtime) error {
 			"Certificate": fmt.Sprintf("%s.pem", registryDomain),
 			"Key":         fmt.Sprintf("%s-key.pem", registryDomain),
 			"Password":    templates.Password(g.KubeConf, registryDomain),
-			"AicpCluster": templates.IsAicpCluster(g.KubeConf),
+			"DataRoot":    "/aicp/dockerRootDir/registry",
 			"HttpsPort":   g.KubeConf.Cluster.Registry.GetRegistryPort(),
 		},
 	}

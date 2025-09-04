@@ -21,7 +21,6 @@ import (
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
-	"k8s.io/klog/v2"
 )
 
 type DockerExist struct {
@@ -139,7 +138,7 @@ func (r *RegistryExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	case common.Harbor:
 		output, err := runtime.GetRunner().SudoCmd("systemctl is-active harbor", false)
 		if err != nil {
-			klog.Warningf("harbor not found: %v", err)
+
 			return r.Not, nil
 		}
 		if strings.Contains(output, "active") {

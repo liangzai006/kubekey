@@ -110,14 +110,13 @@ type GenerateContainerdConfig struct {
 
 func (e *GenerateContainerdConfig) Execute(runtime connector.Runtime) error {
 	template := templates.ContainerdConfig
-	dst:= filepath.Join("/etc/containerd/", templates.ContainerdConfig.Name())
+	dst := filepath.Join("/etc/containerd/", templates.ContainerdConfig.Name())
 	data := util.Data{
 		"Mirrors":            templates.Mirrors(e.KubeConf),
 		"InsecureRegistries": e.KubeConf.Cluster.Registry.InsecureRegistries,
 		"SandBoxImage":       images.GetImage(runtime, e.KubeConf, "pause").ImageName(),
 		"Auths":              registry.DockerRegistryAuthEntries(e.KubeConf.Cluster.Registry.Auths),
 		"DataRoot":           templates.DataRoot(e.KubeConf),
-		"AicpCluster":        templates.IsAicpCluster(e.KubeConf),
 		"GpuNodeType":        templates.GpuNodeType(e.KubeConf, runtime),
 	}
 

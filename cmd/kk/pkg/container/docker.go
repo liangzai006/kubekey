@@ -110,7 +110,6 @@ func (e *GenerateDockerConfig) Execute(runtime connector.Runtime) error {
 		"InsecureRegistries":    templates.InsecureRegistries(e.KubeConf),
 		"DataRoot":              templates.DataRoot(e.KubeConf),
 		"BridgeIP":              templates.BridgeIP(e.KubeConf),
-		"AicpCluster":           templates.IsAicpCluster(e.KubeConf),
 		"DockerRootOverlaySize": templates.DockerRootOverlaySize(e.KubeConf, runtime),
 		"GpuNodeType":           templates.GpuNodeType(e.KubeConf, runtime),
 	}

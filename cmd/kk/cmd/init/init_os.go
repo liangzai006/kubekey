@@ -30,7 +30,6 @@ type InitOsOptions struct {
 	CommonOptions      *options.CommonOptions
 	ClusterCfgFile     string
 	Artifact           string
-	IsAicpCluster      bool
 	RepositoryServerIp net.IP
 }
 
@@ -59,11 +58,10 @@ func NewCmdInitOs() *cobra.Command {
 
 func (o *InitOsOptions) Run() error {
 	arg := common.Argument{
-		FilePath:      o.ClusterCfgFile,
-		Debug:         o.CommonOptions.Verbose,
-		Artifact:      o.Artifact,
-		IsAicpCluster: o.IsAicpCluster,
-		RepositoryIp:  o.RepositoryServerIp,
+		FilePath:     o.ClusterCfgFile,
+		Debug:        o.CommonOptions.Verbose,
+		Artifact:     o.Artifact,
+		RepositoryIp: o.RepositoryServerIp,
 	}
 	return pipelines.InitDependencies(arg)
 }
@@ -90,6 +88,5 @@ func (o *InitOsOptions) Complete(_ *cobra.Command, _ []string) error {
 func (o *InitOsOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
-	cmd.Flags().BoolVarP(&o.IsAicpCluster, "is-aicp-cluster", "", false, "Init a aicp cluster os")
 	cmd.Flags().IPVarP(&o.RepositoryServerIp, "repository-server-ip", "r", nil, "Repository server ip")
 }

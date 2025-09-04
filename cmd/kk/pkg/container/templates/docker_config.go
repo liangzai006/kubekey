@@ -46,7 +46,6 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
   {{- if .BridgeIP }}
   "bip": {{ .BridgeIP }},
   {{- end}}
-  {{- if .AicpCluster }}
   "storage-driver": "overlay2",
   {{- if ne .DockerRootOverlaySize "0"}}
   "storage-opts": [ "overlay2.size={{ .DockerRootOverlaySize }}" ],
@@ -62,7 +61,6 @@ var DockerConfig = template.Must(template.New("daemon.json").Parse(
       "runtimeArgs": []
     }
   },
-  {{- end}}
   {{- end}}
   "exec-opts": ["native.cgroupdriver=cgroupfs"]
 }
@@ -92,40 +90,29 @@ func InsecureRegistries(kubeConf *common.KubeConf) string {
 	return insecureRegistries
 }
 
-func IsAicpCluster(kubeConf *common.KubeConf) bool {
-	return kubeConf.Arg.IsAicpCluster
-}
-
 func DockerRootOverlaySize(kubeConf *common.KubeConf, runtime connector.Runtime) string {
-	if kubeConf.Arg.IsAicpCluster {
-		currentHost := getCurrentHost(runtime)
-		if currentHost.DockerRootDisk == "" {
-			return "0"
-		}
-		if len(currentHost.DockerOverlaySize) > 0 {
-			return currentHost.DockerOverlaySize
-		}
+
+	currentHost := getCurrentHost(runtime)
+	if currentHost.DockerRootDisk == "" {
+		return "0"
 	}
+	if len(currentHost.DockerOverlaySize) > 0 {
+		return currentHost.DockerOverlaySize
+	}
+
 	return common.AicpDefaultDockerOverlaySize
 }
 
 func GpuNodeType(kubeConf *common.KubeConf, runtime connector.Runtime) string {
-	if kubeConf.Arg.IsAicpCluster {
-		currentHost := getCurrentHost(runtime)
-		return currentHost.GpuType
-	}
-	return ""
+	currentHost := getCurrentHost(runtime)
+	return currentHost.GpuType
 }
 
 func DataRoot(kubeConf *common.KubeConf) string {
-	var dataRoot string
-	if kubeConf.Arg.IsAicpCluster {
-		dataRoot = fmt.Sprintf("\"%s\"", common.AicpDockerRootDir)
-	}
 	if kubeConf.Cluster.Registry.DataRoot != "" {
-		dataRoot = fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.DataRoot)
+		return fmt.Sprintf("\"%s\"", kubeConf.Cluster.Registry.DataRoot)
 	}
-	return dataRoot
+	return fmt.Sprintf("\"%s\"", common.AicpDockerRootDir)
 }
 
 func BridgeIP(kubeConf *common.KubeConf) string {

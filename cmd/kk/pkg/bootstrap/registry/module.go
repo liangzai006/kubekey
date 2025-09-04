@@ -138,6 +138,7 @@ func InstallRegistry(i *InstallRegistryModule) []task.Interface {
 			Data: util.Data{
 				"Certificate": fmt.Sprintf("%s.pem", i.KubeConf.Cluster.Registry.GetHost()),
 				"Key":         fmt.Sprintf("%s-key.pem", i.KubeConf.Cluster.Registry.GetHost()),
+				"DataRoot":    "/aicp/dockerRootDir/registry",
 			},
 		},
 		Parallel: true,

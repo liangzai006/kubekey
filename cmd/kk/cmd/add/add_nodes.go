@@ -33,7 +33,6 @@ type AddNodesOptions struct {
 	DownloadCmd      string
 	Artifact         string
 	InstallPackages  bool
-	IsAicpCluster    bool
 }
 
 func NewAddNodesOptions() *AddNodesOptions {
@@ -77,7 +76,6 @@ func (o *AddNodesOptions) Run() error {
 		ContainerManager: o.ContainerManager,
 		Artifact:         o.Artifact,
 		InstallPackages:  o.InstallPackages,
-		IsAicpCluster:    o.IsAicpCluster,
 		Namespace:        o.CommonOptions.Namespace,
 	}
 	return pipelines.AddNodes(arg, o.DownloadCmd)
@@ -91,5 +89,4 @@ func (o *AddNodesOptions) AddFlags(cmd *cobra.Command) {
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
-	cmd.Flags().BoolVarP(&o.IsAicpCluster, "is-aicp-cluster", "", false, "add nodes to a aicp cluster")
 }

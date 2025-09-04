@@ -35,6 +35,7 @@ type DeployOptions struct {
 	Artifact            string
 	InstallPackages     bool
 	Force               bool
+	AicpWorkDir         string
 }
 
 func NewDeployOptions() *DeployOptions {
@@ -79,17 +80,16 @@ func (o *DeployOptions) Validate(_ *cobra.Command, _ []string) error {
 
 func (o *DeployOptions) Run() error {
 	arg := common.Argument{
-		FilePath: o.ClusterCfgFile,
-
+		FilePath:            o.ClusterCfgFile,
 		SecurityEnhancement: o.SecurityEnhancement,
 		Debug:               o.CommonOptions.Verbose,
 		IgnoreErr:           o.CommonOptions.IgnoreErr,
 		SkipConfirmCheck:    o.CommonOptions.SkipConfirmCheck,
 		Artifact:            o.Artifact,
 		InstallPackages:     o.InstallPackages,
-		IsAicpCluster:       true,
 		Namespace:           o.CommonOptions.Namespace,
 		Force:               o.Force,
+		AicpWorkDir:         o.AicpWorkDir,
 	}
 
 	return pipelines.CoresHubDeploy(arg, o.DownloadCmd)
@@ -103,6 +103,7 @@ func (o *DeployOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
 	cmd.Flags().BoolVarP(&o.Force, "force", "", false, "force to deploy")
+	cmd.Flags().StringVarP(&o.AicpWorkDir, "aicp-dir", "", "", "Aicp work dir")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

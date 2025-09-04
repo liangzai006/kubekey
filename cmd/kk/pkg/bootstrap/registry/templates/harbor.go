@@ -14,10 +14,11 @@ limitations under the License.
 package templates
 
 import (
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
 	"strings"
 	"text/template"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
 
 	"github.com/lithammer/dedent"
 )
@@ -105,11 +106,8 @@ database:
   conn_max_idle_time: 0
 
 # The default data volume
-{{- if .AicpCluster }}
-data_volume: /aicp/dockerRootDir/registry
-{{- else }}
-data_volume: /mnt/registry
-{{- end }}
+data_volume: {{ .DataRoot }}
+
 
 # Harbor Storage settings by default is using /data dir on local filesystem
 # Uncomment storage_service setting If you want to using external storage
@@ -381,8 +379,4 @@ func Password(kubeConf *common.KubeConf, domain string) string {
 	}
 
 	return "Harbor12345"
-}
-
-func IsAicpCluster(kubeConf *common.KubeConf) bool {
-	return kubeConf.Arg.IsAicpCluster
 }

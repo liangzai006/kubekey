@@ -74,7 +74,7 @@ state = "/run/containerd"
       conf_dir = "/etc/cni/net.d"
       max_conf_num = 1
       conf_template = ""
-    {{- if and .AicpCluster (eq .GpuNodeType "nvidia") }}
+    {{- if eq .GpuNodeType "nvidia" }}
     [plugins."io.containerd.grpc.v1.cri".containerd]
       default_runtime_name = "nvidia"
 

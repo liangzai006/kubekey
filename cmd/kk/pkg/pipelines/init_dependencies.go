@@ -38,7 +38,7 @@ func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
 		&os.RepositoryModule{Skip: noArtifact},
 		&os.RepositoryOnlineModule{Skip: !noArtifact},
 		&filesystem.ChownWorkDirModule{},
-		&os.AicpDirModule{Skip: !runtime.Arg.IsAicpCluster},
+		&os.AicpDirModule{},
 		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 	}
 

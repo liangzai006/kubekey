@@ -30,7 +30,6 @@ type InitRegistryOptions struct {
 	ClusterCfgFile string
 	DownloadCmd    string
 	Artifact       string
-	IsAicpCluster  bool
 }
 
 func NewInitRegistryOptions() *InitRegistryOptions {
@@ -62,10 +61,9 @@ func (o *InitRegistryOptions) Complete(_ *cobra.Command, _ []string) error {
 
 func (o *InitRegistryOptions) Run() error {
 	arg := common.Argument{
-		FilePath:      o.ClusterCfgFile,
-		Debug:         o.CommonOptions.Verbose,
-		Artifact:      o.Artifact,
-		IsAicpCluster: o.IsAicpCluster,
+		FilePath: o.ClusterCfgFile,
+		Debug:    o.CommonOptions.Verbose,
+		Artifact: o.Artifact,
 	}
 	return pipelines.InitRegistry(arg, o.DownloadCmd)
 }
@@ -75,5 +73,4 @@ func (o *InitRegistryOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
-	cmd.Flags().BoolVarP(&o.IsAicpCluster, "is-aicp-cluster", "", false, "Init a aicp cluster os")
 }

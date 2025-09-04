@@ -68,7 +68,7 @@ func NewCreateClusterPipeline(runtime *common.KubeRuntime) error {
 		&os.RepositoryModule{Skip: noArtifact || !runtime.Arg.InstallPackages},
 		&binaries.NodeBinariesModule{},
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
-		&os.AicpDirModule{Skip: !runtime.Arg.IsAicpCluster},
+		&os.AicpDirModule{},
 		&container.InstallContainerModule{},
 		&container.InstallCriDockerdModule{Skip: runtime.Cluster.Kubernetes.ContainerManager != "docker"},
 		&images.CopyImagesToRegistryModule{Skip: skipPushImages},
