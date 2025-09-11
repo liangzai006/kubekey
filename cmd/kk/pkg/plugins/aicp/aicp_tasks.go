@@ -397,10 +397,10 @@ func (a *AicpWebAppTask) Execute(runtime connector.Runtime) error {
 	}
 
 	auths := registry.DockerRegistryAuthEntries(a.KubeConf.Cluster.Registry.Auths)
-	if _, ok := auths[a.KubeConf.Cluster.Registry.PrivateRegistry]; !ok {
-		return fmt.Errorf("registry auth not found: %s", a.KubeConf.Cluster.Registry.PrivateRegistry)
+	if _, ok := auths[a.KubeConf.Cluster.Registry.GetHost()]; !ok {
+		return fmt.Errorf("registry auth not found: %s", a.KubeConf.Cluster.Registry.GetHost())
 	}
-	auth := auths[a.KubeConf.Cluster.Registry.PrivateRegistry]
+	auth := auths[a.KubeConf.Cluster.Registry.GetHost()]
 
 	protocol := "https"
 	if auth.PlainHTTP {
@@ -541,10 +541,10 @@ func (d *DockerApiServerTask) Execute(runtime connector.Runtime) error {
 	}
 
 	auths := registry.DockerRegistryAuthEntries(d.KubeConf.Cluster.Registry.Auths)
-	if _, ok := auths[d.KubeConf.Cluster.Registry.PrivateRegistry]; !ok {
-		return fmt.Errorf("registry auth not found: %s", d.KubeConf.Cluster.Registry.PrivateRegistry)
+	if _, ok := auths[d.KubeConf.Cluster.Registry.GetHost()]; !ok {
+		return fmt.Errorf("registry auth not found: %s", d.KubeConf.Cluster.Registry.GetHost())
 	}
-	auth := auths[d.KubeConf.Cluster.Registry.PrivateRegistry]
+	auth := auths[d.KubeConf.Cluster.Registry.GetHost()]
 	protocol := "https"
 	if auth.PlainHTTP {
 		protocol = "http"
@@ -633,10 +633,10 @@ func (m *MaasTask) Execute(runtime connector.Runtime) error {
 	}
 
 	auths := registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths)
-	if _, ok := auths[m.KubeConf.Cluster.Registry.PrivateRegistry]; !ok {
-		return fmt.Errorf("registry auth not found: %s", m.KubeConf.Cluster.Registry.PrivateRegistry)
+	if _, ok := auths[m.KubeConf.Cluster.Registry.GetHost()]; !ok {
+		return fmt.Errorf("registry auth not found: %s", m.KubeConf.Cluster.Registry.GetHost())
 	}
-	auth := auths[m.KubeConf.Cluster.Registry.PrivateRegistry]
+	auth := auths[m.KubeConf.Cluster.Registry.GetHost()]
 	protocol := "https"
 	if auth.PlainHTTP {
 		protocol = "http"
