@@ -265,6 +265,10 @@ func (d *DeployKsCoreModule) Init() {
 		Action:  new(DeployKsCore),
 		Retry:   0,
 		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "ks-core", Namespace: "kubesphere-system"},
+		Rollback: &aicp.DeployFailRollBack{
+			Name:      "zfs-localpv",
+			Namespace: "openebs-system",
+		},
 	}
 	PushKseExtension := &task.LocalTask{
 		Name:   "PushKseExtension",

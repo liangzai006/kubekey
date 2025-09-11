@@ -23,6 +23,7 @@ import (
 
 	"github.com/pkg/errors"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
+	"k8s.io/klog/v2"
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/action"
@@ -109,16 +110,16 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type ConfigCheck struct {
+type ClusterConfigCheck struct {
 	common.KubeAction
 	Skip bool
 }
 
-func (c *ConfigCheck) IsSkip() bool {
+func (c *ClusterConfigCheck) IsSkip() bool {
 	return c.Skip
 }
 
-func (c *ConfigCheck) Execute(runtime connector.Runtime) error {
+func (c *ClusterConfigCheck) Execute(runtime connector.Runtime) error {
 	resultMap := make(map[string]string)
 	// check  driver
 	for _, host := range c.KubeConf.Cluster.Hosts {
@@ -127,26 +128,17 @@ func (c *ConfigCheck) Execute(runtime connector.Runtime) error {
 		} else if len(host.ZfsDataDisk) > 0 {
 			for _, zfsDataDisk := range host.ZfsDataDisk {
 				if strings.Contains(zfsDataDisk, host.DockerRootDisk) {
-					resultMap["zfsDataDisk"] = fmt.Sprintf("%s: %s", host.Name, "ZFS disk has been used by Docker")
+					resultMap["zfsDataDisk"] = fmt.Sprintf("%s: '%s' ZFS disk has been used by Docker.", host.Name, zfsDataDisk)
 				}
 			}
 		}
 	}
-
-	return nil
-}
-
-type NodeConfigCheck struct {
-	common.KubeAction
-	Skip bool
-}
-
-func (n *NodeConfigCheck) IsSkip() bool {
-	return n.Skip
-}
-
-func (n *NodeConfigCheck) Execute(runtime connector.Runtime) error {
-
+	if len(resultMap) > 0 {
+		for _, r := range resultMap {
+			klog.Error(r)
+		}
+		return errors.New("cluster configuration file check failed")
+	}
 	return nil
 }
 

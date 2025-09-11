@@ -22,12 +22,20 @@ func (d *DeployIaaSModule) Init() {
 		Desc:    "Deploy Product Manager Server Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "product-manager-server", Namespace: "global-system"},
 		Action:  new(ProductManagerServerTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "product-manager-server",
+			Namespace: "global-system",
+		},
 	}
 	TeamTask := &task.LocalTask{
 		Name:    "TeamTask",
 		Desc:    "Deploy Team Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "team", Namespace: "global-system"},
 		Action:  new(TeamTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "team",
+			Namespace: "global-system",
+		},
 	}
 
 	ImaasTask := &task.LocalTask{
@@ -35,6 +43,10 @@ func (d *DeployIaaSModule) Init() {
 		Desc:    "Deploy ImaaS Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "imaas", Namespace: "maas-system"},
 		Action:  new(ImaasTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "imaas",
+			Namespace: "maas-system",
+		},
 	}
 
 	AccountTask := &task.LocalTask{
@@ -42,6 +54,10 @@ func (d *DeployIaaSModule) Init() {
 		Desc:    "Deploy Account Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "account", Namespace: "pitrix"},
 		Action:  new(AccountTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "account",
+			Namespace: "pitrix",
+		},
 	}
 
 	ConsoleTask := &task.LocalTask{
@@ -49,18 +65,30 @@ func (d *DeployIaaSModule) Init() {
 		Desc:    "Deploy Console Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "console", Namespace: "pitrix"},
 		Action:  new(ConsoleTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "console",
+			Namespace: "pitrix",
+		},
 	}
 	BossTask := &task.LocalTask{
 		Name:    "BossTask",
 		Desc:    "Deploy Boss Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "boss", Namespace: "pitrix"},
 		Action:  new(BossTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "boss",
+			Namespace: "pitrix",
+		},
 	}
 	ProductTask := &task.LocalTask{
 		Name:    "ProductTask",
 		Desc:    "Deploy Product Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "product", Namespace: "pitrix"},
 		Action:  new(ProductTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "product",
+			Namespace: "pitrix",
+		},
 	}
 
 	GlueTask := &task.LocalTask{
@@ -68,12 +96,20 @@ func (d *DeployIaaSModule) Init() {
 		Desc:    "Deploy Glue Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "glue", Namespace: "pitrix"},
 		Action:  new(GlueTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "glue",
+			Namespace: "pitrix",
+		},
 	}
 	DocsTask := &task.LocalTask{
 		Name:    "DocsTask",
 		Desc:    "Deploy Docs Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "docs", Namespace: "pitrix"},
 		Action:  new(DocsTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "docs",
+			Namespace: "pitrix",
+		},
 	}
 
 	BillingTask := &task.LocalTask{
@@ -81,6 +117,10 @@ func (d *DeployIaaSModule) Init() {
 		Desc:    "Deploy Billing Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "billing", Namespace: "pitrix"},
 		Action:  new(BillingTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "billing",
+			Namespace: "pitrix",
+		},
 	}
 	WarehouseTask := &task.LocalTask{
 		Name:    "WarehouseTask",
@@ -94,6 +134,10 @@ func (d *DeployIaaSModule) Init() {
 		Desc:    "Deploy Nginx Ingress Controller",
 		Prepare: &HelmIsInstalled{Not: true, Name: "nginx", Namespace: "pitrix"},
 		Action:  new(NginxTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "nginx",
+			Namespace: "pitrix",
+		},
 	}
 
 	d.Tasks = []task.Interface{

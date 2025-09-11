@@ -25,6 +25,30 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 )
 
+type ClusterConfigPreCheckModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (n *ClusterConfigPreCheckModule) IsSkip() bool {
+	return n.Skip
+}
+
+func (n *ClusterConfigPreCheckModule) Init() {
+	n.Name = "ClusterConfigPreCheckModule"
+	n.Desc = "Do config pre-check on cluster nodes"
+
+	configCheck := &task.LocalTask{
+		Name:   "ClusterConfigPreCheck",
+		Desc:   "A config check on cluster files",
+		Action: new(ClusterConfigCheck),
+	}
+
+	n.Tasks = []task.Interface{
+		configCheck,
+	}
+}
+
 type GreetingsModule struct {
 	module.BaseTaskModule
 }
@@ -72,21 +96,8 @@ func (n *NodePreCheckModule) Init() {
 		Action:   new(NodePreCheck),
 		Parallel: true,
 	}
-	configCheck := &task.LocalTask{
-		Name:   "ClusterConfigPreCheck",
-		Desc:   "A config check on cluster files",
-		Action: new(ConfigCheck),
-	}
-	// NodeConfigCheck := &task.RemoteTask{
-	// 	Name:     "NodeConfigPreCheck",
-	// 	Desc:     "A config check on cluster nodes",
-	// 	Hosts:    n.Runtime.GetAllHosts(),
-	// 	Action:   new(NodeConfigCheck),
-	// 	Parallel: true,
-	// }
 
 	n.Tasks = []task.Interface{
-		configCheck,
 		preCheck,
 	}
 }

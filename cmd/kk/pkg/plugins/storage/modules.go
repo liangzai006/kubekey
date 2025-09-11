@@ -100,6 +100,10 @@ func (d *DeployStorageVolumeModule) Init() {
 		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "zfs-localpv", Namespace: "openebs-system"},
 		Retry:   0,
 		Action:  new(DeployZfsStorageClass),
+		Rollback: &aicp.DeployFailRollBack{
+			Name:      "zfs-localpv",
+			Namespace: "openebs-system",
+		},
 	}
 
 	d.Tasks = []task.Interface{

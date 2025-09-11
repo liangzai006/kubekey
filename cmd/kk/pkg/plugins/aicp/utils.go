@@ -64,7 +64,7 @@ func (h *HelmOptions) Install() error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 120*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
 	defer cancel()
 
 	if h.PreHook != nil {
@@ -88,13 +88,12 @@ func (h *HelmOptions) Install() error {
 
 	}
 
-	timeout := 120 * time.Second
+	timeout := 300 * time.Second
 
 	i := action.NewInstall(cfg)
 	i.ReleaseName = h.Name
 	i.Namespace = h.Namespace
 	i.Timeout = timeout
-	i.Wait = true
 	rel, err := i.RunWithContext(ctx, chart, h.Values)
 	if err != nil {
 		klog.Errorf("install %s failed, %s\n", h.Name, err)
@@ -137,4 +136,22 @@ func (h *HelmOptions) Templates() (*release.Release, error) {
 	}
 
 	return rel, nil
+}
+
+func (h *HelmOptions) Uninstall() error {
+
+	cfg, err := h.Init()
+	if err != nil {
+		return err
+	}
+
+	i := action.NewUninstall(cfg)
+
+	_, err = i.Run(h.Name)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

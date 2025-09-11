@@ -51,6 +51,7 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 	skipPushImages := noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
 
 	m := []module.Module{
+		&precheck.ClusterConfigPreCheckModule{},
 		&precheck.GreetingsModule{},
 		&customscripts.CustomScriptsModule{Phase: "PreInstall", Scripts: runtime.Cluster.System.PreInstall},
 		&precheck.NodePreCheckModule{},
