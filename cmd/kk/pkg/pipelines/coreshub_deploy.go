@@ -37,10 +37,13 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/filesystem"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubernetes"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/loadbalancer"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/aicp"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/network"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/storage"
 )
 
 func NewDeployPipeline(runtime *common.KubeRuntime) error {
@@ -53,7 +56,7 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		&precheck.NodePreCheckModule{},
 		&confirm.InstallConfirmModule{},
 		&os.FreePasswdModule{Skip: !runtime.Arg.FreePasswd},
-		&artifact.UnArchiveModule{Skip: noArtifact || runtime.IsStepSkip("initOs")},
+		&artifact.UnArchiveModule{Skip: noArtifact || runtime.Arg.SkipCheckMd5 || runtime.IsStepSkip("initOs")},
 		&kubernetes.StatusModule{Skip: runtime.IsStepSkip("initOs")},
 		&os.RepositoryModule{Skip: noArtifact && !runtime.Arg.InstallPackages || runtime.IsStepSkip("initOs")},
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS || runtime.IsStepSkip("initOs")},
@@ -93,6 +96,13 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		&plugins.DeployPluginsModule{Skip: runtime.IsStepSkip("createCluster")},
 		&addons.AddonsModule{Skip: runtime.IsStepSkip("createCluster")},
 		&customscripts.CustomScriptsModule{Phase: "PostInstall", Scripts: runtime.Cluster.System.PostInstall},
+
+		// deploy storage volume zfs
+		&storage.DeployStorageVolumeModule{},
+		&kubesphere.DeployKsCoreModule{},
+		&aicp.DeployAicpServiceModule{},
+		&aicp.DeployIaaSModule{},
+		&aicp.DeployOptionalModules{},
 	}
 
 	p := pipeline.Pipeline{

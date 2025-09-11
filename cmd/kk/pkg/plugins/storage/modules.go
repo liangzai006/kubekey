@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/aicp"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/storage/templates"
 )
 
@@ -76,5 +77,32 @@ func (d *DeployLocalVolumeModule) Init() {
 	d.Tasks = []task.Interface{
 		generate,
 		deploy,
+	}
+}
+
+type DeployStorageVolumeModule struct {
+	common.KubeModule
+	Skip        bool
+	StorageType string
+}
+
+func (d *DeployStorageVolumeModule) IsSkip() bool {
+	return d.Skip
+}
+
+func (d *DeployStorageVolumeModule) Init() {
+	d.Name = "DeployStorageClassModule"
+	d.Desc = "Deploy cluster storage-class"
+
+	zfs := &task.LocalTask{
+		Name:    "Deploy StorageClass",
+		Desc:    "Deploy StorageClass",
+		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "zfs-localpv", Namespace: "kube-system"},
+		Retry:   0,
+		Action:  new(DeployZfsStorageClass),
+	}
+
+	d.Tasks = []task.Interface{
+		zfs,
 	}
 }

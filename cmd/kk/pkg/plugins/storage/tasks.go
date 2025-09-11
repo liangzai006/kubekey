@@ -24,6 +24,7 @@ import (
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/aicp"
 )
 
 type DeployLocalVolume struct {
@@ -36,4 +37,26 @@ func (d *DeployLocalVolume) Execute(runtime connector.Runtime) error {
 		return errors.Wrap(errors.WithStack(err), "deploy local-volume.yaml failed")
 	}
 	return nil
+}
+
+type DeployZfsStorageClass struct {
+	common.KubeAction
+}
+
+func (d *DeployZfsStorageClass) Execute(runtime connector.Runtime) error {
+	zfsDir := filepath.Join(d.KubeConf.Arg.AicpWorkDir, "charts", "zfs-localpv")
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"offlineRepo": d.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+	}
+
+	helm := aicp.HelmOptions{
+		Name:      "zfs-localpv",
+		Namespace: "openebs-system",
+		ChartPath: zfsDir,
+		Values:    vals,
+	}
+	return helm.Install()
+
 }

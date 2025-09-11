@@ -63,6 +63,7 @@ type Argument struct {
 	Force               bool
 	FreePasswd          bool
 	AicpWorkDir         string
+	SkipCheckMd5        bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {

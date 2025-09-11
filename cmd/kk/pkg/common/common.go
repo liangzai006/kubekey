@@ -104,4 +104,19 @@ const (
 	AicpZpoolName                = "zfspv-pool"
 	LongHornVolumeDir            = "/var/lib/longhorn"
 	AicpDefaultDockerOverlaySize = "50G"
+
+	ZFS      = "zfs"
+	Longhorn = "longhorn"
+
+	// Aicp
+	IAAS_AKSK                  = "IAAS_AKSK"
+	ADMIN_KEY_ID               = "ADMIN_KEY_ID"
+	ADMIN_SECRET_KEY           = "ADMIN_SECRET_KEY"
+	ADMIN_SECRET_CONSOLE_KEY   = "ADMIN_SECRET_CONSOLE_KEY"
+	BOSS_KEY_ID                = "BOSS_KEY_ID"
+	BOSS_SECRET_KEY            = "BOSS_SECRET_KEY"
+	BOSS_SECRET_CONSOLE_KEY    = "BOSS_SECRET_CONSOLE_KEY"
+	CONSOLE_KEY_ID             = "CONSOLE_KEY_ID"
+	CONSOLE_SECRET_KEY         = "CONSOLE_SECRET_KEY"
+	CONSOLE_SECRET_CONSOLE_KEY = "CONSOLE_SECRET_CONSOLE_KEY"
 )

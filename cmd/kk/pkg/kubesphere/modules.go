@@ -26,6 +26,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/aicp"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere/templates"
 )
@@ -242,5 +243,53 @@ func (c *ConvertModule) Init() {
 
 	c.Tasks = []task.Interface{
 		convert,
+	}
+}
+
+type DeployKsCoreModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (d *DeployKsCoreModule) IsSkip() bool {
+	return d.Skip
+}
+
+func (d *DeployKsCoreModule) Init() {
+	d.Name = "DeployKubeSphereModule"
+	d.Desc = "Deploy KubeSphere"
+
+	DeployKsCore := &task.LocalTask{
+		Name:    "DeployKubeSphere",
+		Desc:    "Deploy KubeSphere",
+		Action:  new(DeployKsCore),
+		Retry:   0,
+		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "ks-core", Namespace: "kubesphere-system"},
+	}
+	PushKseExtension := &task.LocalTask{
+		Name:   "PushKseExtension",
+		Desc:   "Push Kse Extension",
+		Action: new(PushKseExtensionTask),
+		Retry:  0,
+	}
+	pushAicp := &task.LocalTask{
+		Name:   "PushAicpExtension",
+		Desc:   "Push Aicp Extension",
+		Action: new(PushAicpExtensionTask),
+		Retry:  0,
+	}
+
+	applyInstallPlan := &task.LocalTask{
+		Name:   "ApplyInstallPlan",
+		Desc:   "Apply Install Plan",
+		Action: new(ApplyInstallPlanTask),
+		Retry:  0,
+	}
+
+	d.Tasks = []task.Interface{
+		DeployKsCore,
+		PushKseExtension,
+		pushAicp,
+		applyInstallPlan,
 	}
 }

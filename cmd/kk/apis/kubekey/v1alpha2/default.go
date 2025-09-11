@@ -104,6 +104,9 @@ const (
 	Haproxy            = "haproxy"
 	Kubevip            = "kube-vip"
 	DefaultKubeVipMode = "ARP"
+
+	DefaultAicpDomain = "coreshub-local.com"
+	DefaultAicpZone   = "coreshub"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*KubeHost) {
@@ -122,7 +125,7 @@ func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*Kub
 	clusterCfg.Registry = cfg.Registry
 	clusterCfg.Addons = cfg.Addons
 	clusterCfg.KubeSphere = cfg.KubeSphere
-	clusterCfg.Aicp = cfg.Aicp
+	clusterCfg.Aicp = SetDefaultAicpCfg(cfg)
 
 	if cfg.Kubernetes.ClusterName == "" {
 		clusterCfg.Kubernetes.ClusterName = DefaultClusterName
@@ -360,4 +363,14 @@ func SetDefaultEtcdCfg(cfg *ClusterSpec) EtcdCluster {
 	}
 
 	return cfg.Etcd
+}
+
+func SetDefaultAicpCfg(cfg *ClusterSpec) Aicp {
+	if cfg.Aicp.Domain == "" {
+		cfg.Aicp.Domain = DefaultAicpDomain
+	}
+	if cfg.Aicp.Zone == "" {
+		cfg.Aicp.Zone = DefaultAicpZone
+	}
+	return cfg.Aicp
 }

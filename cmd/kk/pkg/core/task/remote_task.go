@@ -155,7 +155,7 @@ func (t *RemoteTask) Run(runtime connector.Runtime, host connector.Host, index i
 	}
 
 	t.TaskResult.AppendSuccess(host)
-	return
+
 }
 
 func (t *RemoteTask) ConfigureSelfRuntime(runtime connector.Runtime, host connector.Host, index int) error {

@@ -17,16 +17,23 @@
 package kubesphere
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/pkg/errors"
 	yamlV3 "gopkg.in/yaml.v3"
+	"helm.sh/helm/v3/pkg/cli"
+	"helm.sh/helm/v3/pkg/kube"
+	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/klog/v2"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
@@ -34,6 +41,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
 	ksv2 "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere/v2"
 	ksv3 "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere/v3"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/aicp"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/version/kubesphere/templates"
 )
@@ -430,4 +438,229 @@ func MigrateConfig2to3(v2 *ksv2.V2, v3 *ksv3.V3) (string, error) {
 	}
 
 	return string(configV3), nil
+}
+
+type DeployKsCore struct {
+	common.KubeAction
+}
+
+func (d *DeployKsCore) Execute(runtime connector.Runtime) error {
+	ksCoreDir := filepath.Join(d.KubeConf.Arg.AicpWorkDir, "common", "ks-core")
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"tag":           "v4.1.2",
+			"imageRegistry": d.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"extension": map[string]interface{}{
+			"imageRegistry": d.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+	}
+
+	helm := aicp.HelmOptions{
+		Name:      "ks-core",
+		Namespace: "kubesphere-system",
+		ChartPath: ksCoreDir,
+		Values:    vals,
+	}
+	return helm.Install()
+
+}
+
+type PushKseExtensionTask struct {
+	common.KubeAction
+}
+
+func (p *PushKseExtensionTask) Execute(runtime connector.Runtime) error {
+	extensionDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "common", "kse-extensions-publish")
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"imageRegistry": p.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"museum": map[string]interface{}{
+			"enabled": true,
+		},
+	}
+
+	helm := aicp.HelmOptions{
+		Name:      "kse-extensions-publish",
+		Namespace: "kubesphere-system",
+		ChartPath: extensionDir,
+		Values:    vals,
+	}
+
+	rel, err := helm.Templates()
+	if err != nil {
+		return err
+	}
+
+	cli := cli.New()
+	kc := kube.New(cli.RESTClientGetter())
+	resources, err := kc.Build(strings.NewReader(rel.Manifest), false)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range resources {
+		helper := resource.NewHelper(r.Client, r.Mapping)
+
+		_, err = helper.Get(r.Namespace, r.Name)
+		if err == nil {
+			continue
+		}
+		_, err = helper.Create(r.Namespace, true, r.Object)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+
+}
+
+type PushAicpExtensionTask struct {
+	common.KubeAction
+}
+
+func (p *PushAicpExtensionTask) Execute(runtime connector.Runtime) error {
+	ksbuildDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "common", "kube-aicp-extensions")
+
+	var ext *kubekeyapiv1alpha2.ExtensionKsbuilder
+	ext, err := Load(ksbuildDir)
+	if err != nil {
+		return err
+	}
+
+	cli := cli.New()
+	kc := kube.New(cli.RESTClientGetter())
+
+	for _, obj := range ext.ToKubernetesResources() {
+
+		data, err := yaml.Marshal(obj)
+		if err != nil {
+			return err
+		}
+
+		resources, err := kc.Build(bytes.NewReader(data), false)
+		if err != nil {
+			return err
+		}
+		r := resources[0]
+		_, err = resource.NewHelper(r.Client, r.Mapping).Get(r.Namespace, r.Name)
+		if err == nil {
+			continue
+		}
+
+		fmt.Printf("creating %s %s\n", obj.GetObjectKind().GroupVersionKind().Kind, obj.GetName())
+		_, err = kc.Create(resources)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+type ApplyInstallPlanTask struct {
+	common.KubeAction
+}
+
+// 定义优先级顺序
+var resourcePriority = map[string]int{
+	"opensearch":        1,
+	"vector":            2,
+	"whizard-telemetry": 3,
+}
+
+func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
+	installPlanDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "common", "kse-extensions")
+
+	fs, err := os.ReadDir(installPlanDir)
+	if err != nil {
+		return err
+	}
+	cli := cli.New()
+	kc := kube.New(cli.RESTClientGetter())
+	var resources kube.ResourceList
+
+	for _, f := range fs {
+		if f.IsDir() || !strings.HasSuffix(f.Name(), ".yaml") {
+			continue
+		}
+		yamlData, err := os.ReadFile(filepath.Join(installPlanDir, f.Name()))
+		if err != nil {
+			return err
+		}
+
+		kcRes, err := kc.Build(bytes.NewReader(yamlData), false)
+		if err != nil {
+			return err
+		}
+		resources = append(resources, kcRes...)
+
+	}
+
+	// Sort resources, giving priority to opensearch, vector, and whizard-telemetry
+	sort.Slice(resources, func(i, j int) bool {
+		nameI := resources[i].Name
+		nameJ := resources[j].Name
+
+		// Get priority, if not exist, set to 999 (lowest priority)
+		priorityI, existsI := resourcePriority[nameI]
+		priorityJ, existsJ := resourcePriority[nameJ]
+
+		if !existsI {
+			priorityI = 999
+		}
+		if !existsJ {
+			priorityJ = 999
+		}
+
+		// If priority is different, sort by priority
+		if priorityI != priorityJ {
+			return priorityI < priorityJ
+		}
+
+		// If priority is the same, sort by name alphabetically
+		return nameI < nameJ
+	})
+
+	for _, r := range resources {
+
+		helper := resource.NewHelper(r.Client, r.Mapping).WithFieldManager("coreshub-deploy")
+		_, err = helper.Get(r.Namespace, r.Name)
+		if err == nil {
+			continue
+		}
+
+		_, err = helper.Create(r.Namespace, true, r.Object)
+		if err != nil {
+			return err
+		}
+
+		_, waitReourceIsExist := resourcePriority[r.Name]
+
+		if waitReourceIsExist {
+			err = WaitForResource(func() (bool, error) {
+				resource, err := helper.Get(r.Namespace, r.Name)
+				if err != nil {
+					return false, err
+				}
+				state, err := getStatusState(resource)
+				if err != nil {
+					return false, err
+				}
+				klog.Infof("wait for resource complete. resource: %s, state: %s", r.Name, state)
+				if state == "Installed" {
+					return true, nil
+				}
+				return false, nil
+			}, 300*time.Second)
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
 }

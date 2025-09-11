@@ -17,6 +17,7 @@ limitations under the License.
 package coreshub
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -33,9 +34,10 @@ type DeployOptions struct {
 	SecurityEnhancement bool
 	DownloadCmd         string
 	Artifact            string
-	InstallPackages     bool
+	SkipCheckMd5        bool
 	Force               bool
 	AicpWorkDir         string
+	FreePasswd          bool
 }
 
 func NewDeployOptions() *DeployOptions {
@@ -68,13 +70,16 @@ func NewCmdDeploy() *cobra.Command {
 
 func (o *DeployOptions) Complete(cmd *cobra.Command, args []string) error {
 	if o.Artifact == "" {
-		o.InstallPackages = false
+
 	}
 
 	return nil
 }
 
 func (o *DeployOptions) Validate(_ *cobra.Command, _ []string) error {
+	if o.ClusterCfgFile == "" {
+		return errors.New("missing required flag: --filename/-f")
+	}
 	return nil
 }
 
@@ -86,10 +91,11 @@ func (o *DeployOptions) Run() error {
 		IgnoreErr:           o.CommonOptions.IgnoreErr,
 		SkipConfirmCheck:    o.CommonOptions.SkipConfirmCheck,
 		Artifact:            o.Artifact,
-		InstallPackages:     o.InstallPackages,
+		SkipCheckMd5:        o.SkipCheckMd5,
 		Namespace:           o.CommonOptions.Namespace,
 		Force:               o.Force,
 		AicpWorkDir:         o.AicpWorkDir,
+		FreePasswd:          o.FreePasswd,
 	}
 
 	return pipelines.CoresHubDeploy(arg, o.DownloadCmd)
@@ -101,9 +107,10 @@ func (o *DeployOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.DownloadCmd, "download-cmd", "", "curl -L -o %s %s",
 		`The user defined command to download the necessary binary files. The first param '%s' is output path, the second param '%s', is the URL`)
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
-	cmd.Flags().BoolVarP(&o.InstallPackages, "with-packages", "", false, "install operation system packages by artifact")
+	cmd.Flags().BoolVarP(&o.SkipCheckMd5, "skip-check-md5", "", false, "skip check md5")
 	cmd.Flags().BoolVarP(&o.Force, "force", "", false, "force to deploy")
 	cmd.Flags().StringVarP(&o.AicpWorkDir, "aicp-dir", "", "", "Aicp work dir")
+	cmd.Flags().BoolVarP(&o.FreePasswd, "free-passwd", "fp", false, "set free passwd for all nodes")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {
@@ -112,9 +119,5 @@ func completionSetting(cmd *cobra.Command) (err error) {
 		return []string{}, cobra.ShellCompDirectiveNoFileComp
 	}
 
-	// err = cmd.RegisterFlagCompletionFunc("with-kubernetes", func(cmd *cobra.Command, args []string, toComplete string) (
-	// 	strings []string, directive cobra.ShellCompDirective) {
-	// 	return kubernetes.SupportedK8sVersionList(), cobra.ShellCompDirectiveNoFileComp
-	// })
 	return
 }
