@@ -182,6 +182,7 @@ func (h *DeployAicpServiceModule) Init() {
 		NotebookControllerTask,
 		ProfilesTask,
 		TensorboardControllerTask,
+		VolcanoTask,
 		TrainingOperatorTask,
 		AicpWebAppTask,
 		ImagebuilderTask,
@@ -193,6 +194,5 @@ func (h *DeployAicpServiceModule) Init() {
 		MaasTask,
 		OperationTask,
 		LwsTask,
-		VolcanoTask,
 	}
 }
