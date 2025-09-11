@@ -110,7 +110,7 @@ func (o *DeployOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.SkipCheckMd5, "skip-check-md5", "", false, "skip check md5")
 	cmd.Flags().BoolVarP(&o.Force, "force", "", false, "force to deploy")
 	cmd.Flags().StringVarP(&o.AicpWorkDir, "aicp-dir", "", "", "Aicp work dir")
-	cmd.Flags().BoolVarP(&o.FreePasswd, "free-passwd", "fp", false, "set free passwd for all nodes")
+	cmd.Flags().BoolVarP(&o.FreePasswd, "free-passwd", "p", false, "set free passwd for all nodes")
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {
