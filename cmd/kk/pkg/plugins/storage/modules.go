@@ -97,7 +97,7 @@ func (d *DeployStorageVolumeModule) Init() {
 	zfs := &task.LocalTask{
 		Name:    "Deploy StorageClass",
 		Desc:    "Deploy StorageClass",
-		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "zfs-localpv", Namespace: "kube-system"},
+		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "zfs-localpv", Namespace: "openebs-system"},
 		Retry:   0,
 		Action:  new(DeployZfsStorageClass),
 	}

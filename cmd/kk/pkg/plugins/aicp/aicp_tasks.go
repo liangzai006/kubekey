@@ -81,6 +81,7 @@ func (i *GenerateAicpAkSkTask) Execute(runtime connector.Runtime) error {
 		return err
 	}
 
+	io.Copy(io.Discard, pull)
 	defer pull.Close()
 
 	iaasAksk := make(map[string]string)
