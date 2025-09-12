@@ -44,6 +44,8 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/network"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/storage"
+	reg "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
+	"github.com/modood/table"
 )
 
 func NewDeployPipeline(runtime *common.KubeRuntime) error {
@@ -115,6 +117,8 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		return err
 	}
 
+	PrintDeployInfo(runtime)
+
 	return nil
 }
 
@@ -143,4 +147,71 @@ func CoresHubDeploy(args common.Argument, downloadCmd string) error {
 	}
 
 	return nil
+}
+
+// console   10.23.0.2 console.core.com   admin Zhu88jie!
+type PrintDeployInfoResult struct {
+	Name     string `table:"name"`
+	Ip       string `table:"ip"`
+	Domain   string `table:"domain"`
+	Username string `table:"username"`
+	Password string `table:"password"`
+}
+
+func PrintDeployInfo(runtime *common.KubeRuntime) {
+
+	auths := reg.DockerRegistryAuthEntries(runtime.Cluster.Registry.Auths)
+
+	var username, password = "admin", "Harbor12345"
+
+	if auth, ok := auths[runtime.Cluster.Registry.GetHost()]; ok {
+		username = auth.Username
+		password = auth.Password
+	}
+
+	var registryId string
+	registryHosts := runtime.GetHostsByRole(common.Registry)
+	if len(registryHosts) > 0 {
+		registryId = registryHosts[0].GetInternalAddress()
+	}
+
+	results := []PrintDeployInfoResult{
+		{
+			Name:     "console",
+			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
+			Domain:   fmt.Sprintf("console.%s", runtime.Cluster.Aicp.Domain),
+			Username: fmt.Sprintf("admin@%s", runtime.Cluster.Aicp.Domain),
+			Password: "Zhu88jie!",
+		},
+		{
+			Name:     "boss",
+			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
+			Domain:   fmt.Sprintf("boss.%s", runtime.Cluster.Aicp.Domain),
+			Username: fmt.Sprintf("boss@%s", runtime.Cluster.Aicp.Domain),
+			Password: "zhu88jie",
+		},
+		{
+			Name:     "cadmin",
+			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
+			Domain:   fmt.Sprintf("cadmin.%s", runtime.Cluster.Aicp.Domain),
+			Username: "admin",
+			Password: "zhu88jie",
+		},
+		{
+			Name:     "kse",
+			Domain:   fmt.Sprintf("%s:30880", runtime.Cluster.ControlPlaneEndpoint.Address),
+			Username: "admin",
+			Password: "P@88w0rd",
+		},
+		{
+			Name:     "harbor",
+			Ip:       registryId,
+			Domain:   runtime.Cluster.Registry.GetHost(),
+			Username: username,
+			Password: password,
+		},
+	}
+	fmt.Println()
+	fmt.Println("部署完成。集群服务的相关信息如下：")
+	table.OutputA(results)
 }

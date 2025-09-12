@@ -38,6 +38,8 @@ type DeployOptions struct {
 	Force               bool
 	AicpWorkDir         string
 	FreePasswd          bool
+	Hami                bool
+	Network             bool
 }
 
 func NewDeployOptions() *DeployOptions {
@@ -96,6 +98,8 @@ func (o *DeployOptions) Run() error {
 		Force:               o.Force,
 		AicpWorkDir:         o.AicpWorkDir,
 		FreePasswd:          o.FreePasswd,
+		Hami:                o.Hami,
+		Network:             o.Network,
 	}
 
 	return pipelines.CoresHubDeploy(arg, o.DownloadCmd)
@@ -111,6 +115,9 @@ func (o *DeployOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().BoolVarP(&o.Force, "force", "", false, "force to deploy")
 	cmd.Flags().StringVarP(&o.AicpWorkDir, "aicp-dir", "", "", "Aicp work dir")
 	cmd.Flags().BoolVarP(&o.FreePasswd, "free-passwd", "p", false, "set free passwd for all nodes")
+	cmd.Flags().BoolVarP(&o.Hami, "hami", "", false, "deploy hami")
+	cmd.Flags().BoolVarP(&o.Network, "network", "n", false, "deploy network")
+
 }
 
 func completionSetting(cmd *cobra.Command) (err error) {

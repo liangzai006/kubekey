@@ -62,6 +62,9 @@ type HamiPrepare struct {
 }
 
 func (h *HamiPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
+	if h.KubeConf.Arg.Hami {
+		return true, nil
+	}
 	return h.KubeConf.Cluster.Aicp.Hami, nil
 }
 
@@ -70,5 +73,8 @@ type NetworkOperatorPrepare struct {
 }
 
 func (n *NetworkOperatorPrepare) PreCheck(runtime connector.Runtime) (bool, error) {
+	if n.KubeConf.Arg.Network {
+		return true, nil
+	}
 	return n.KubeConf.Cluster.Aicp.Network, nil
 }

@@ -64,6 +64,8 @@ type Argument struct {
 	FreePasswd          bool
 	AicpWorkDir         string
 	SkipCheckMd5        bool
+	Hami                bool
+	Network             bool
 }
 
 func NewKubeRuntime(flag string, arg Argument) (*KubeRuntime, error) {

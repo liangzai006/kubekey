@@ -10,9 +10,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
-	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
@@ -63,8 +60,8 @@ func (h *HelmOptions) Install() error {
 		klog.Errorf("get kubernetes client set failed, %s\n", err)
 		return err
 	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 300*time.Second)
+	timeout := 300 * time.Second
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	if h.PreHook != nil {
@@ -73,27 +70,27 @@ func (h *HelmOptions) Install() error {
 		}
 	}
 
-	if h.Namespace != "" {
-		_, err = kubeClient.CoreV1().Namespaces().Get(ctx, h.Namespace, v1.GetOptions{})
-		if err != nil && apierrors.IsNotFound(err) {
-			_, err = kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-				ObjectMeta: v1.ObjectMeta{
-					Name: h.Namespace,
-				},
-			}, v1.CreateOptions{})
-			if err != nil {
-				return err
-			}
-		}
+	// if h.Namespace != "" {
+	// 	_, err = kubeClient.CoreV1().Namespaces().Get(ctx, h.Namespace, v1.GetOptions{})
+	// 	if err != nil && apierrors.IsNotFound(err) {
+	// 		_, err = kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+	// 			ObjectMeta: v1.ObjectMeta{
+	// 				Name: h.Namespace,
+	// 			},
+	// 		}, v1.CreateOptions{})
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 	}
 
-	}
-
-	timeout := 300 * time.Second
+	// }
 
 	i := action.NewInstall(cfg)
 	i.ReleaseName = h.Name
 	i.Namespace = h.Namespace
+	i.CreateNamespace = true
 	i.Timeout = timeout
+	i.Wait = true
 	rel, err := i.RunWithContext(ctx, chart, h.Values)
 	if err != nil {
 		klog.Errorf("install %s failed, %s\n", h.Name, err)
