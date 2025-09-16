@@ -53,6 +53,12 @@ type NodePreCheck struct {
 func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 	var results = make(map[string]string)
 	results["name"] = runtime.RemoteHost().GetName()
+	results["address"] = runtime.RemoteHost().GetAddress()
+	results["arch"] = runtime.RemoteHost().GetArch()
+	results["gpu"] = runtime.RemoteHost().GetGpuType()
+	results["dockerRootDisk"] = runtime.RemoteHost().GetDockerRootDisk()
+	results["zfsDataDisk"] = strings.Join(runtime.RemoteHost().GetZfsDataDisk(), ",")
+
 	for _, software := range baseSoftware {
 		var (
 			cmd string

@@ -36,21 +36,25 @@ import (
 
 // PreCheckResults defines the items to be checked.
 type PreCheckResults struct {
-	Name       string `table:"name"`
-	Sudo       string `table:"sudo"`
-	Curl       string `table:"curl"`
-	Openssl    string `table:"openssl"`
-	Ebtables   string `table:"ebtables"`
-	Socat      string `table:"socat"`
-	Ipset      string `table:"ipset"`
-	Ipvsadm    string `table:"ipvsadm"`
-	Conntrack  string `table:"conntrack"`
-	Chronyd    string `table:"chrony"`
-	Docker     string `table:"docker"`
-	Containerd string `table:"containerd"`
-	// Nfs        string `table:"nfs client"`
-	Zfs  string `table:"zfs" yaml:"zpool" json:"zpool"`
-	Time string `table:"time"`
+	Name           string `table:"name"`
+	Address        string `table:"address"`
+	Arch           string `table:"arch"`
+	Gpu            string `table:"gpu"`
+	DockerRootDisk string `table:"dockerRootDisk"`
+	ZfsDataDisk    string `table:"zfsDataDisk"`
+	Sudo           string `table:"sudo"`
+	Curl           string `table:"curl"`
+	Openssl        string `table:"openssl"`
+	Ebtables       string `table:"ebtables"`
+	Socat          string `table:"socat"`
+	Ipset          string `table:"ipset"`
+	Ipvsadm        string `table:"ipvsadm"`
+	Conntrack      string `table:"conntrack"`
+	Chronyd        string `table:"chrony"`
+	Docker         string `table:"docker"`
+	Containerd     string `table:"containerd"`
+	Zfs            string `table:"zfs" yaml:"zpool" json:"zpool"`
+	Time           string `table:"time"`
 }
 
 type InstallationConfirm struct {
@@ -85,12 +89,12 @@ func (i *InstallationConfirm) Execute(runtime connector.Runtime) error {
 	reader := bufio.NewReader(os.Stdin)
 
 	for _, host := range results {
-		if i.KubeConf.Arg.Artifact == "" {
-			if host.Sudo == "" {
-				logger.Log.Errorf("%s: sudo is required.", host.Name)
-				stopFlag = true
-			}
+		if host.Sudo == "" {
+			logger.Log.Errorf("%s: sudo is required.", host.Name)
+			stopFlag = true
+		}
 
+		if i.KubeConf.Arg.Artifact == "" {
 			if host.Conntrack == "" {
 				logger.Log.Errorf("%s: conntrack is required.", host.Name)
 				stopFlag = true

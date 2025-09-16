@@ -138,6 +138,7 @@ type KubeSphere struct {
 type Aicp struct {
 	Domain   string            `yaml:"domain" json:"domain,omitempty"`
 	Zone     string            `yaml:"zone" json:"zone,omitempty"`
+	Billing  bool              `yaml:"billing" json:"billing,omitempty"`
 	Hami     bool              `yaml:"hami" json:"hami,omitempty"`
 	Network  bool              `yaml:"network" json:"network,omitempty"`
 	IaasKeys map[string]string `yaml:"iaasKeys" json:"iaasKeys,omitempty"`
@@ -213,11 +214,6 @@ func (cfg *ClusterSpec) GroupHosts() map[string][]*KubeHost {
 // +kubebuilder:object:generate=false
 type KubeHost struct {
 	*connector.BaseHost
-	Labels            map[string]string
-	DockerRootDisk    string
-	ZfsDataDisk       []string
-	GpuType           string
-	DockerOverlaySize string
 }
 
 func toHosts(cfg HostCfg) *KubeHost {
@@ -232,14 +228,14 @@ func toHosts(cfg HostCfg) *KubeHost {
 	host.PrivateKeyPath = cfg.PrivateKeyPath
 	host.Arch = cfg.Arch
 	host.Timeout = *cfg.Timeout
+	host.Labels = cfg.Labels
+	host.DockerRootDisk = cfg.DockerRootDisk
+	host.ZfsDataDisk = cfg.ZfsDataDisk
+	host.GpuType = cfg.GpuType
+	host.DockerOverlaySize = cfg.DockerOverlaySize
 
 	kubeHost := &KubeHost{
-		BaseHost:          host,
-		Labels:            cfg.Labels,
-		DockerRootDisk:    cfg.DockerRootDisk,
-		ZfsDataDisk:       cfg.ZfsDataDisk,
-		GpuType:           cfg.GpuType,
-		DockerOverlaySize: cfg.DockerOverlaySize,
+		BaseHost: host,
 	}
 	return kubeHost
 }

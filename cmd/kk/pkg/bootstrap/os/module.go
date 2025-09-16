@@ -573,7 +573,7 @@ func (r *FreePasswdModule) Init() {
 	execSSHKey := &task.RemoteTask{
 		Name:   "ExecSSHKey",
 		Desc:   "Exec SSH key",
-		Hosts:  r.Runtime.GetHostsByRole(common.Master),
+		Hosts:  r.Runtime.GetAllHosts(),
 		Action: new(ExecSSHKey),
 	}
 

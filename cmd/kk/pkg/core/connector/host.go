@@ -17,21 +17,27 @@
 package connector
 
 import (
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/cache"
 	"strings"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/cache"
 )
 
 type BaseHost struct {
-	Name            string `yaml:"name,omitempty" json:"name,omitempty"`
-	Address         string `yaml:"address,omitempty" json:"address,omitempty"`
-	InternalAddress string `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
-	Port            int    `yaml:"port,omitempty" json:"port,omitempty"`
-	User            string `yaml:"user,omitempty" json:"user,omitempty"`
-	Password        string `yaml:"password,omitempty" json:"password,omitempty"`
-	PrivateKey      string `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
-	PrivateKeyPath  string `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
-	Arch            string `yaml:"arch,omitempty" json:"arch,omitempty"`
-	Timeout         int64  `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	Name              string            `yaml:"name,omitempty" json:"name,omitempty"`
+	Address           string            `yaml:"address,omitempty" json:"address,omitempty"`
+	InternalAddress   string            `yaml:"internalAddress,omitempty" json:"internalAddress,omitempty"`
+	Port              int               `yaml:"port,omitempty" json:"port,omitempty"`
+	User              string            `yaml:"user,omitempty" json:"user,omitempty"`
+	Password          string            `yaml:"password,omitempty" json:"password,omitempty"`
+	PrivateKey        string            `yaml:"privateKey,omitempty" json:"privateKey,omitempty"`
+	PrivateKeyPath    string            `yaml:"privateKeyPath,omitempty" json:"privateKeyPath,omitempty"`
+	Arch              string            `yaml:"arch,omitempty" json:"arch,omitempty"`
+	Timeout           int64             `yaml:"timeout,omitempty" json:"timeout,omitempty"`
+	Labels            map[string]string `yaml:"labels,omitempty" json:"labels,omitempty"`
+	DockerRootDisk    string            `yaml:"dockerRootDisk,omitempty" json:"dockerRootDisk,omitempty"`
+	ZfsDataDisk       []string          `yaml:"zfsDataDisk,omitempty" json:"zfsDataDisk,omitempty"`
+	GpuType           string            `yaml:"gpuType,omitempty" json:"gpuType,omitempty"`
+	DockerOverlaySize string            `yaml:"dockerOverlaySize,omitempty" json:"dockerOverlaySize,omitempty"`
 
 	Roles     []string        `json:"-"`
 	RoleTable map[string]bool `json:"-"`
@@ -165,4 +171,44 @@ func (b *BaseHost) GetCache() *cache.Cache {
 
 func (b *BaseHost) SetCache(c *cache.Cache) {
 	b.Cache = c
+}
+
+func (b *BaseHost) GetLabels() map[string]string {
+	return b.Labels
+}
+
+func (b *BaseHost) SetLabels(labels map[string]string) {
+	b.Labels = labels
+}
+
+func (b *BaseHost) GetDockerRootDisk() string {
+	return b.DockerRootDisk
+}
+
+func (b *BaseHost) SetDockerRootDisk(dockerRootDisk string) {
+	b.DockerRootDisk = dockerRootDisk
+}
+
+func (b *BaseHost) GetZfsDataDisk() []string {
+	return b.ZfsDataDisk
+}
+
+func (b *BaseHost) SetZfsDataDisk(zfsDataDisk []string) {
+	b.ZfsDataDisk = zfsDataDisk
+}
+
+func (b *BaseHost) GetGpuType() string {
+	return b.GpuType
+}
+
+func (b *BaseHost) SetGpuType(gpuType string) {
+	b.GpuType = gpuType
+}
+
+func (b *BaseHost) GetDockerOverlaySize() string {
+	return b.DockerOverlaySize
+}
+
+func (b *BaseHost) SetDockerOverlaySize(dockerOverlaySize string) {
+	b.DockerOverlaySize = dockerOverlaySize
 }

@@ -60,7 +60,7 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		&confirm.InstallConfirmModule{},
 		&os.FreePasswdModule{Skip: !runtime.Arg.FreePasswd},
 		&artifact.UnArchiveModule{Skip: noArtifact || runtime.Arg.SkipCheckMd5 || runtime.IsStepSkip("initOs")},
-		&kubernetes.StatusModule{Skip: runtime.IsStepSkip("initOs")},
+		&kubernetes.StatusModule{},
 		&os.RepositoryModule{Skip: noArtifact && !runtime.Arg.InstallPackages || runtime.IsStepSkip("initOs")},
 		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS || runtime.IsStepSkip("initOs")},
 		&os.AicpDirModule{Skip: runtime.IsStepSkip("initOs")},

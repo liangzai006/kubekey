@@ -106,7 +106,8 @@ func (i *ImaasTask) Execute(runtime connector.Runtime) error {
 			"repository": i.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 		"config": map[string]interface{}{
-			"domain": i.KubeConf.Cluster.Aicp.Domain,
+			"domain":  i.KubeConf.Cluster.Aicp.Domain,
+			"billing": FormatBilling(i.KubeConf.Cluster.Aicp.Billing),
 			"iaas": map[string]interface{}{
 				"zone":            i.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],

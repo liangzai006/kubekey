@@ -70,21 +70,6 @@ func (h *HelmOptions) Install() error {
 		}
 	}
 
-	// if h.Namespace != "" {
-	// 	_, err = kubeClient.CoreV1().Namespaces().Get(ctx, h.Namespace, v1.GetOptions{})
-	// 	if err != nil && apierrors.IsNotFound(err) {
-	// 		_, err = kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-	// 			ObjectMeta: v1.ObjectMeta{
-	// 				Name: h.Namespace,
-	// 			},
-	// 		}, v1.CreateOptions{})
-	// 		if err != nil {
-	// 			return err
-	// 		}
-	// 	}
-
-	// }
-
 	i := action.NewInstall(cfg)
 	i.ReleaseName = h.Name
 	i.Namespace = h.Namespace
@@ -151,4 +136,11 @@ func (h *HelmOptions) Uninstall() error {
 	}
 
 	return nil
+}
+
+func FormatBilling(billing bool) int {
+	if billing {
+		return 1
+	}
+	return 0
 }

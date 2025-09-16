@@ -17,9 +17,10 @@
 package connector
 
 import (
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/cache"
 	"io"
 	"os"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/cache"
 )
 
 type Connection interface {
@@ -92,4 +93,14 @@ type Host interface {
 	IsRole(role string) bool
 	GetCache() *cache.Cache
 	SetCache(c *cache.Cache)
+	GetLabels() map[string]string
+	SetLabels(labels map[string]string)
+	GetDockerRootDisk() string
+	SetDockerRootDisk(dockerRootDisk string)
+	GetZfsDataDisk() []string
+	SetZfsDataDisk(zfsDataDisk []string)
+	GetGpuType() string
+	SetGpuType(gpuType string)
+	GetDockerOverlaySize() string
+	SetDockerOverlaySize(dockerOverlaySize string)
 }

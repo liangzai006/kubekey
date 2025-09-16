@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -414,6 +415,7 @@ func (a *AicpWebAppTask) Execute(runtime connector.Runtime) error {
 		"config": map[string]interface{}{
 			"domain":  a.KubeConf.Cluster.Aicp.Domain,
 			"sshHost": a.KubeConf.Cluster.ControlPlaneEndpoint.Address,
+			"billing": strconv.FormatBool(a.KubeConf.Cluster.Aicp.Billing),
 			"iaas": map[string]interface{}{
 				"zone":            a.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
@@ -478,7 +480,8 @@ func (e *EpfsTask) Execute(runtime connector.Runtime) error {
 			"offlineRepo": e.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 		"config": map[string]interface{}{
-			"domain": e.KubeConf.Cluster.Aicp.Domain,
+			"domain":  e.KubeConf.Cluster.Aicp.Domain,
+			"billing": FormatBilling(e.KubeConf.Cluster.Aicp.Billing),
 			"iaas": map[string]interface{}{
 				"zone":            e.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
@@ -646,7 +649,8 @@ func (m *MaasTask) Execute(runtime connector.Runtime) error {
 			"offlineRepo": m.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 		"config": map[string]interface{}{
-			"domain": m.KubeConf.Cluster.Aicp.Domain,
+			"domain":  m.KubeConf.Cluster.Aicp.Domain,
+			"billing": FormatBilling(m.KubeConf.Cluster.Aicp.Billing),
 			"iaas": map[string]interface{}{
 				"zone":            m.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
