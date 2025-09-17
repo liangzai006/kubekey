@@ -7,9 +7,9 @@ import (
 
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
-	"helm.sh/helm/v3/pkg/release"
+	corev1 "k8s.io/api/core/v1"
+	apierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -44,11 +44,20 @@ func (p *ProductManagerServerTask) Execute(runtime connector.Runtime) error {
 		Namespace: "global-system",
 		ChartPath: productManagerServerDir,
 		Values:    vals,
-		PostHook: func(ctx context.Context, kubeClient kubernetes.Interface, rel *release.Release) error {
-			_, err := kubeClient.CoreV1().Namespaces().Patch(ctx, "global-system", k8sTypes.MergePatchType, []byte(`{"metadata":{"labels":{"istio-injection": "enabled", "control-plane": "global-system"}}}`), metav1.PatchOptions{})
-			if err != nil {
+		PreHook: func(ctx context.Context, kubeClient kubernetes.Interface) error {
+			_, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "global-system",
+					Labels: map[string]string{
+						"istio-injection": "enabled",
+						"control-plane":   "global-system",
+					},
+				},
+			}, metav1.CreateOptions{})
+			if err != nil && !apierror.IsAlreadyExists(err) {
 				return err
 			}
+
 			return nil
 		},
 	}

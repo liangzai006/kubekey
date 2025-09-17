@@ -181,7 +181,7 @@ func PrintDeployInfo(runtime *common.KubeRuntime) {
 			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
 			Domain:   fmt.Sprintf("console.%s", runtime.Cluster.Aicp.Domain),
 			Username: fmt.Sprintf("admin@%s", runtime.Cluster.Aicp.Domain),
-			Password: "Zhu88jie!",
+			Password: "需boss重置密码",
 		},
 		{
 			Name:     "boss",

@@ -16,11 +16,10 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
-	"helm.sh/helm/v3/pkg/release"
 
 	corev1 "k8s.io/api/core/v1"
+	apierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8sTypes "k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
@@ -189,11 +188,21 @@ func (i *IstioTask) Execute(runtime connector.Runtime) error {
 		Namespace: "istio-system",
 		ChartPath: istioDir,
 		Values:    vals,
-		PostHook: func(ctx context.Context, kubeClient kubernetes.Interface, rel *release.Release) error {
-			_, err := kubeClient.CoreV1().Namespaces().Patch(ctx, "istio-system", k8sTypes.MergePatchType, []byte(`{"metadata":{"labels":{"istio-injection": "disabled", "istio-operator-managed": "Reconcile"}}}`), metav1.PatchOptions{})
-			if err != nil {
+		PreHook: func(ctx context.Context, kubeClient kubernetes.Interface) error {
+
+			_, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "istio-system",
+					Labels: map[string]string{
+						"istio-injection":        "disabled",
+						"istio-operator-managed": "Reconcile",
+					},
+				},
+			}, metav1.CreateOptions{})
+			if err != nil && !apierror.IsAlreadyExists(err) {
 				return err
 			}
+
 			return nil
 		},
 	}
@@ -232,11 +241,20 @@ func (k *KubeflowTask) Execute(runtime connector.Runtime) error {
 		Name:      "kubeflow",
 		Namespace: "kubeflow",
 		ChartPath: kubeflowDir,
-		PostHook: func(ctx context.Context, kubeClient kubernetes.Interface, rel *release.Release) error {
-			_, err := kubeClient.CoreV1().Namespaces().Patch(ctx, "kubeflow", k8sTypes.MergePatchType, []byte(`{"metadata":{"labels":{"istio-injection": "enabled", "control-plane": "kubeflow"}}}`), metav1.PatchOptions{})
-			if err != nil {
+		PreHook: func(ctx context.Context, kubeClient kubernetes.Interface) error {
+			_, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "kubeflow",
+					Labels: map[string]string{
+						"istio-injection": "enabled",
+						"control-plane":   "kubeflow",
+					},
+				},
+			}, metav1.CreateOptions{})
+			if err != nil && !apierror.IsAlreadyExists(err) {
 				return err
 			}
+
 			return nil
 		},
 	}
@@ -433,11 +451,20 @@ func (a *AicpWebAppTask) Execute(runtime connector.Runtime) error {
 		Namespace: "aicp-system",
 		ChartPath: aicpWebAppDir,
 		Values:    vals,
-		PostHook: func(ctx context.Context, kubeClient kubernetes.Interface, rel *release.Release) error {
-			_, err := kubeClient.CoreV1().Namespaces().Patch(ctx, "aicp-system", k8sTypes.MergePatchType, []byte(`{"metadata":{"labels":{"istio-injection": "enabled", "control-plane": "aicp-system"}}}`), metav1.PatchOptions{})
-			if err != nil {
+		PreHook: func(ctx context.Context, kubeClient kubernetes.Interface) error {
+			_, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aicp-system",
+					Labels: map[string]string{
+						"istio-injection": "enabled",
+						"control-plane":   "aicp-system",
+					},
+				},
+			}, metav1.CreateOptions{})
+			if err != nil && !apierror.IsAlreadyExists(err) {
 				return err
 			}
+
 			return nil
 		},
 	}
@@ -669,11 +696,20 @@ func (m *MaasTask) Execute(runtime connector.Runtime) error {
 		Namespace: "maas-system",
 		ChartPath: maasDir,
 		Values:    vals,
-		PostHook: func(ctx context.Context, kubeClient kubernetes.Interface, rel *release.Release) error {
-			_, err := kubeClient.CoreV1().Namespaces().Patch(ctx, "maas-system", k8sTypes.MergePatchType, []byte(`{"metadata":{"labels":{"istio-injection": "enabled", "control-plane": "maas-system"}}}`), metav1.PatchOptions{})
-			if err != nil {
+		PreHook: func(ctx context.Context, kubeClient kubernetes.Interface) error {
+			_, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "maas-system",
+					Labels: map[string]string{
+						"istio-injection": "enabled",
+						"control-plane":   "maas-system",
+					},
+				},
+			}, metav1.CreateOptions{})
+			if err != nil && !apierror.IsAlreadyExists(err) {
 				return err
 			}
+
 			return nil
 		},
 	}
