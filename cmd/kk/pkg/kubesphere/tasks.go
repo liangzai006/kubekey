@@ -566,10 +566,12 @@ type ApplyInstallPlanTask struct {
 
 // 定义优先级顺序
 var resourcePriority = map[string]int{
-	"opensearch":         1,
-	"vector":             2,
-	"whizard-telemetry":  3,
-	"whizard-monitoring": 4,
+	"opensearch":           1,
+	"vector":               2,
+	"whizard-telemetry":    3,
+	"whizard-monitoring":   4,
+	"whizard-alerting":     5,
+	"whizard-notification": 6,
 }
 
 func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
@@ -661,6 +663,56 @@ func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+type ApplyPrometheusResourceTask struct {
+	common.KubeAction
+}
+
+func (p *ApplyPrometheusResourceTask) Execute(runtime connector.Runtime) error {
+	installPlanDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "common", "kse-extension-notification-webhook")
+
+	fs, err := os.ReadDir(installPlanDir)
+	if err != nil {
+		return err
+	}
+	cli := cli.New()
+	kc := kube.New(cli.RESTClientGetter())
+	var resources kube.ResourceList
+
+	for _, f := range fs {
+		if f.IsDir() || !strings.HasSuffix(f.Name(), ".yaml") {
+			continue
+		}
+		yamlData, err := os.ReadFile(filepath.Join(installPlanDir, f.Name()))
+		if err != nil {
+			return err
+		}
+
+		kcRes, err := kc.Build(bytes.NewReader(yamlData), false)
+		if err != nil {
+			return err
+		}
+		resources = append(resources, kcRes...)
+
+	}
+
+	for _, r := range resources {
+
+		helper := resource.NewHelper(r.Client, r.Mapping).WithFieldManager("prometheus-resources")
+		_, err = helper.Get(r.Namespace, r.Name)
+		if err == nil {
+			continue
+		}
+
+		_, err = helper.Create(r.Namespace, true, r.Object)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil

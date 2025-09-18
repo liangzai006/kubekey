@@ -289,11 +289,18 @@ func (d *DeployKsCoreModule) Init() {
 		Action: new(ApplyInstallPlanTask),
 		Retry:  0,
 	}
+	applyPrometheusResource := &task.LocalTask{
+		Name:   "ApplyPrometheusResource",
+		Desc:   "Apply Prometheus Resource",
+		Action: new(ApplyPrometheusResourceTask),
+		Retry:  0,
+	}
 
 	d.Tasks = []task.Interface{
 		DeployKsCore,
 		PushKseExtension,
 		pushAicp,
 		applyInstallPlan,
+		applyPrometheusResource,
 	}
 }
