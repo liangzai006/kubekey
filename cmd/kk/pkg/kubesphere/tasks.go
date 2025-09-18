@@ -566,9 +566,10 @@ type ApplyInstallPlanTask struct {
 
 // 定义优先级顺序
 var resourcePriority = map[string]int{
-	"opensearch":        1,
-	"vector":            2,
-	"whizard-telemetry": 3,
+	"opensearch":         1,
+	"vector":             2,
+	"whizard-telemetry":  3,
+	"whizard-monitoring": 4,
 }
 
 func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
