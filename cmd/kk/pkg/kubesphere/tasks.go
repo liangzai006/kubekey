@@ -454,6 +454,9 @@ func (d *DeployKsCore) Execute(runtime connector.Runtime) error {
 		"extension": map[string]interface{}{
 			"imageRegistry": d.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
+		"aicp": map[string]interface{}{
+			"domain": d.KubeConf.Cluster.Aicp.Domain,
+		},
 	}
 
 	helm := aicp.HelmOptions{
