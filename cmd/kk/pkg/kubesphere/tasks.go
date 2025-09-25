@@ -21,21 +21,32 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
+	"unicode"
 
+	dockerTypes "github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	dockerclient "github.com/docker/docker/client"
 	"github.com/ghodss/yaml"
+
 	"github.com/pkg/errors"
 	yamlV3 "gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/cli-runtime/pkg/resource"
+	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/client/kubernetes"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
@@ -446,6 +457,10 @@ type DeployKsCore struct {
 
 func (d *DeployKsCore) Execute(runtime connector.Runtime) error {
 	ksCoreDir := filepath.Join(d.KubeConf.Arg.AicpWorkDir, "common", "ks-core")
+	keys, ok := d.PipelineCache.Get(common.IAAS_AKSK)
+	if !ok {
+		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
+	}
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"tag":           "v4.1.2",
@@ -453,6 +468,10 @@ func (d *DeployKsCore) Execute(runtime connector.Runtime) error {
 		},
 		"extension": map[string]interface{}{
 			"imageRegistry": d.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"ha": map[string]interface{}{
+			"enabled":  true,
+			"password": keys.(map[string]string)[common.REDIS_PASSWORD],
 		},
 		"aicp": map[string]interface{}{
 			"domain": d.KubeConf.Cluster.Aicp.Domain,
@@ -719,4 +738,181 @@ func (p *ApplyPrometheusResourceTask) Execute(runtime connector.Runtime) error {
 	}
 
 	return nil
+}
+
+type GenerateAicpKeysTask struct {
+	common.KubeAction
+}
+
+func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
+	cmName := "aicp-key"
+	k8sClient, err := kubernetes.NewClient(filepath.Join(homedir.HomeDir(), ".kube", "config"))
+	if err != nil {
+		return err
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	keys := i.KubeConf.Cluster.Aicp.Keys
+	remoteGet := false
+	// if keys is not set, get from configmap
+	if len(keys) == 0 {
+		keysConfig, err := k8sClient.CoreV1().ConfigMaps("kube-system").Get(ctx, cmName, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
+		keys = keysConfig.Data
+		remoteGet = true
+	}
+
+	// if keys is already generated, return
+	if len(keys) == 11 {
+		i.PipelineCache.Set(common.IAAS_AKSK, keys)
+		return nil
+	}
+
+	dockerClient, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
+	if err != nil {
+		return err
+	}
+	pullImage := fmt.Sprintf("%s/aicp/encode-keys:v1", i.KubeConf.Cluster.Registry.PrivateRegistry)
+	err = pullDockerImage(ctx, dockerClient, pullImage)
+	if err != nil {
+		return err
+	}
+
+	keyFields := []string{
+		common.ADMIN_KEY_ID,
+		common.ADMIN_SECRET_KEY,
+		common.CONSOLE_KEY_ID,
+		common.CONSOLE_SECRET_KEY,
+		common.BOSS_KEY_ID,
+		common.BOSS_SECRET_KEY,
+		common.REDIS_PASSWORD,
+	}
+
+	for _, k := range keyFields {
+		keys[k] = generateRandomString(k, keys)
+	}
+
+	encodeFields := map[string]string{
+		common.ADMIN_SECRET_CONSOLE_KEY:   common.ADMIN_SECRET_KEY,
+		common.CONSOLE_SECRET_CONSOLE_KEY: common.CONSOLE_SECRET_KEY,
+		common.BOSS_SECRET_CONSOLE_KEY:    common.BOSS_SECRET_KEY,
+		common.REDIS_ENCODE_PASSWORD:      common.REDIS_PASSWORD,
+	}
+
+	for k, v := range encodeFields {
+		key, ok := keys[v]
+		if !ok && key == "" {
+			keys[v] = generateRandomString(k, keys)
+		}
+		dockerGenKey, err := runDockerAction(ctx, dockerClient, pullImage)
+		if err != nil {
+			return err
+		}
+		keys[k] = dockerGenKey
+	}
+
+	if remoteGet {
+		_, err = k8sClient.CoreV1().ConfigMaps("kube-system").Update(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: cmName,
+			},
+			Data: keys,
+		}, metav1.UpdateOptions{})
+	} else {
+		_, err = k8sClient.CoreV1().ConfigMaps("kube-system").Create(ctx, &corev1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: cmName,
+			},
+			Data: keys,
+		}, metav1.CreateOptions{})
+	}
+
+	if err != nil {
+		return err
+	}
+
+	i.PipelineCache.Set(common.IAAS_AKSK, keys)
+
+	return nil
+}
+
+func pullDockerImage(ctx context.Context, dockerClient *dockerclient.Client, image string) error {
+	pull, err := dockerClient.ImagePull(ctx, image, dockerTypes.ImagePullOptions{})
+	if err != nil {
+		return err
+	}
+	io.Copy(io.Discard, pull)
+	defer pull.Close()
+	return nil
+}
+
+func runDockerAction(ctx context.Context, dockerClient *dockerclient.Client, image string) (string, error) {
+
+	container, err := dockerClient.ContainerCreate(ctx, &container.Config{
+		Image: image,
+	}, nil, nil, nil, "generate-key")
+	if err != nil {
+		return "", fmt.Errorf("create container failed: %w", err)
+	}
+
+	err = dockerClient.ContainerStart(ctx, container.ID, dockerTypes.ContainerStartOptions{})
+	if err != nil {
+		return "", fmt.Errorf("start container failed: %w", err)
+	}
+
+	logs, err := dockerClient.ContainerLogs(ctx, container.ID, dockerTypes.ContainerLogsOptions{
+		ShowStdout: true,
+		Follow:     true,
+	})
+	if err != nil {
+		return "", fmt.Errorf("get container logs failed: %w", err)
+	}
+
+	logBytes, err := io.ReadAll(logs)
+	if err != nil {
+		return "", fmt.Errorf("read container logs failed: %w", err)
+	}
+
+	// filter bad characters
+	cleanLog := make([]rune, 0, len(logBytes))
+	for _, b := range logBytes {
+		if b >= 32 && b <= 126 {
+			if unicode.IsPrint(rune(b)) {
+				cleanLog = append(cleanLog, rune(b))
+			}
+		}
+	}
+
+	logs.Close()
+	dockerClient.ContainerRemove(ctx, container.ID, dockerTypes.ContainerRemoveOptions{
+		Force: true,
+	})
+	return string(cleanLog), nil
+}
+
+func generateRandomString(keysTag string, keys map[string]string) string {
+	if strings.HasSuffix(keysTag, "_KEY_ID") && len(keys[keysTag]) != 20 {
+		key_id := ""
+		letters := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+		for i := 0; i < 20; i++ {
+			idx := rand.Intn(len(letters))
+			key_id += string(letters[idx])
+		}
+		return key_id
+	} else if strings.HasSuffix(keysTag, "_SECRET_KEY") && len(keys[keysTag]) != 40 {
+		secret_key := ""
+		letters := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012356789"
+		for i := 0; i < 40; i++ {
+			idx := rand.Intn(len(letters))
+			secret_key += string(letters[idx])
+		}
+		return secret_key
+	} else if len(keys[keysTag]) != 16 {
+		return rand.String(16)
+	}
+	return keys[keysTag]
+
 }

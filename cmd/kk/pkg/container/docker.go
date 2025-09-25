@@ -109,7 +109,7 @@ func (e *GenerateDockerConfig) Execute(runtime connector.Runtime) error {
 		"Mirrors":               templates.Mirrors(e.KubeConf),
 		"InsecureRegistries":    templates.InsecureRegistries(e.KubeConf),
 		"DataRoot":              templates.DataRoot(e.KubeConf),
-		"BridgeIP":              templates.BridgeIP(e.KubeConf),
+		"BridgeIP":              templates.BridgeIP(e.KubeConf, runtime),
 		"DockerRootOverlaySize": templates.DockerRootOverlaySize(e.KubeConf, runtime),
 		"GpuNodeType":           templates.GpuNodeType(e.KubeConf, runtime),
 	}

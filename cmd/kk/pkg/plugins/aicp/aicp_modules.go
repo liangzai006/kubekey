@@ -28,11 +28,6 @@ func (h *DeployAicpServiceModule) Init() {
 		},
 	}
 
-	generateAksk := &task.LocalTask{
-		Name:   "GenerateAicpAkSk",
-		Desc:   "Generate Aicp Ak Sk",
-		Action: new(GenerateAicpAkSkTask),
-	}
 	certManagerTask := &task.LocalTask{
 		Name:    "CertManagerTask",
 		Desc:    "Deploy CertManager Component",
@@ -260,7 +255,6 @@ func (h *DeployAicpServiceModule) Init() {
 
 	h.Tasks = []task.Interface{
 		aicpStorageTask,
-		generateAksk,
 		certManagerTask,
 		istioTask,
 		ClusterLocalGatewayTask,

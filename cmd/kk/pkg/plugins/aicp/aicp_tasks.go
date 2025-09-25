@@ -3,16 +3,10 @@ package aicp
 import (
 	"context"
 	"fmt"
-	"io"
+
 	"path/filepath"
 	"strconv"
-	"strings"
-	"unicode"
 
-	dockerTypes "github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	dockerclient "github.com/docker/docker/client"
-	kkkubernetes "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/client/kubernetes"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
@@ -21,8 +15,6 @@ import (
 	apierror "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/util/homedir"
-	"k8s.io/klog/v2"
 )
 
 type AicpStorageTask struct {
@@ -43,113 +35,6 @@ func (a *AicpStorageTask) Execute(runtime connector.Runtime) error {
 		Values:    vals,
 	}
 	return helm.Install()
-}
-
-type GenerateAicpAkSkTask struct {
-	common.KubeAction
-}
-
-func (i *GenerateAicpAkSkTask) Execute(runtime connector.Runtime) error {
-	// if cluster file contains iaas keys, use it
-	iaasKeys := i.KubeConf.Cluster.Aicp.IaasKeys
-	if len(iaasKeys) > 0 {
-		i.PipelineCache.Set(common.IAAS_AKSK, iaasKeys)
-		return nil
-	}
-	// if not, use k8s client to get it
-	k8sClient, err := kkkubernetes.NewClient(filepath.Join(homedir.HomeDir(), ".kube", "config"))
-	if err != nil {
-		return err
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	iaasAkskConfig, err := k8sClient.CoreV1().ConfigMaps("kube-system").Get(ctx, "iaas-ak-sk", metav1.GetOptions{})
-	if err == nil {
-		i.PipelineCache.Set(common.IAAS_AKSK, iaasAkskConfig.Data)
-		return nil
-	}
-
-	// if not, use docker client to get it
-	dockerClient, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
-	if err != nil {
-		return err
-	}
-	pullImage := fmt.Sprintf("%s/aicp/ubuntu:gen-key", i.KubeConf.Cluster.Registry.PrivateRegistry)
-
-	pull, err := dockerClient.ImagePull(ctx, pullImage, dockerTypes.ImagePullOptions{})
-	if err != nil {
-		return err
-	}
-
-	io.Copy(io.Discard, pull)
-	defer pull.Close()
-
-	iaasAksk := make(map[string]string)
-
-	for _, s := range []string{"CONSOLE", "BOSS", "ADMIN"} {
-		container, err := dockerClient.ContainerCreate(ctx, &container.Config{
-			Image: pullImage,
-		}, nil, nil, nil, "generate-ak-sk")
-		if err != nil {
-			return err
-		}
-
-		err = dockerClient.ContainerStart(ctx, container.ID, dockerTypes.ContainerStartOptions{})
-		if err != nil {
-			return err
-		}
-
-		logs, err := dockerClient.ContainerLogs(ctx, container.ID, dockerTypes.ContainerLogsOptions{
-			ShowStdout: true,
-			Follow:     true,
-		})
-		if err != nil {
-			return err
-		}
-
-		logBytes, err := io.ReadAll(logs)
-		if err != nil {
-			return err
-		}
-
-		// filter bad characters
-		cleanLog := make([]rune, 0, len(logBytes))
-		for _, b := range logBytes {
-			if b >= 32 && b <= 126 {
-				if unicode.IsPrint(rune(b)) {
-					cleanLog = append(cleanLog, rune(b))
-				}
-			}
-		}
-		klog.Infof("%s key: %s", s, string(cleanLog))
-
-		// parse key and secret key
-		fields := strings.Fields(string(cleanLog))
-		iaasAksk[fmt.Sprintf("%s_KEY_ID", s)] = fields[0]
-		iaasAksk[fmt.Sprintf("%s_SECRET_KEY", s)] = fields[1]
-		iaasAksk[fmt.Sprintf("%s_SECRET_CONSOLE_KEY", s)] = fields[2]
-
-		logs.Close()
-		dockerClient.ContainerRemove(ctx, container.ID, dockerTypes.ContainerRemoveOptions{
-			Force: true,
-		})
-	}
-
-	// set iaas keys to config map
-	_, err = k8sClient.CoreV1().ConfigMaps("kube-system").Create(ctx, &corev1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: "iaas-ak-sk",
-		},
-		Data: iaasAksk,
-	}, metav1.CreateOptions{})
-
-	if err != nil {
-		return err
-	}
-
-	i.PipelineCache.Set(common.IAAS_AKSK, iaasAksk)
-
-	return nil
 }
 
 type CertManagerTask struct {
@@ -276,6 +161,9 @@ func (a *AuthServerTask) Execute(runtime connector.Runtime) error {
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": a.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
 		},
 		"config": map[string]interface{}{
 			"domain": a.KubeConf.Cluster.Aicp.Domain,
@@ -434,6 +322,9 @@ func (a *AicpWebAppTask) Execute(runtime connector.Runtime) error {
 			"domain":  a.KubeConf.Cluster.Aicp.Domain,
 			"sshHost": a.KubeConf.Cluster.ControlPlaneEndpoint.Address,
 			"billing": strconv.FormatBool(a.KubeConf.Cluster.Aicp.Billing),
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
 			"iaas": map[string]interface{}{
 				"zone":            a.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
@@ -506,6 +397,9 @@ func (e *EpfsTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": e.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+		},
 		"config": map[string]interface{}{
 			"domain":  e.KubeConf.Cluster.Aicp.Domain,
 			"billing": FormatBilling(e.KubeConf.Cluster.Aicp.Billing),
@@ -539,6 +433,9 @@ func (p *PushServerTask) Execute(runtime connector.Runtime) error {
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": p.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
 		},
 		"config": map[string]interface{}{
 			"domain": p.KubeConf.Cluster.Aicp.Domain,
@@ -585,6 +482,9 @@ func (d *DockerApiServerTask) Execute(runtime connector.Runtime) error {
 		},
 		"config": map[string]interface{}{
 			"domain": d.KubeConf.Cluster.Aicp.Domain,
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
 			"iaas": map[string]interface{}{
 				"zone":            d.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
@@ -675,6 +575,9 @@ func (m *MaasTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": m.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+		},
 		"config": map[string]interface{}{
 			"domain":  m.KubeConf.Cluster.Aicp.Domain,
 			"billing": FormatBilling(m.KubeConf.Cluster.Aicp.Billing),
@@ -730,6 +633,9 @@ func (o *OperationTask) Execute(runtime connector.Runtime) error {
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"imageRegistry": o.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
 		},
 		"config": map[string]interface{}{
 			"domain": o.KubeConf.Cluster.Aicp.Domain,

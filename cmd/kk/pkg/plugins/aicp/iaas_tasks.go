@@ -29,6 +29,9 @@ func (p *ProductManagerServerTask) Execute(runtime connector.Runtime) error {
 		"image": map[string]interface{}{
 			"repository": p.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+		},
 		"config": map[string]interface{}{
 			"domain": p.KubeConf.Cluster.Aicp.Domain,
 			"iaas": map[string]interface{}{
@@ -80,6 +83,9 @@ func (t *TeamTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"repository": t.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+		},
 		"config": map[string]interface{}{
 			"domain": t.KubeConf.Cluster.Aicp.Domain,
 			"iaas": map[string]interface{}{
@@ -114,6 +120,9 @@ func (i *ImaasTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"repository": i.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+		},
 		"config": map[string]interface{}{
 			"domain":  i.KubeConf.Cluster.Aicp.Domain,
 			"billing": FormatBilling(i.KubeConf.Cluster.Aicp.Billing),
@@ -147,6 +156,9 @@ func (a *AccountTask) Execute(runtime connector.Runtime) error {
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": a.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_ENCODE_PASSWORD],
 		},
 		"configMap": map[string]interface{}{
 			"zone":                       a.KubeConf.Cluster.Aicp.Zone,
@@ -188,6 +200,9 @@ func (c *ConsoleTask) Execute(runtime connector.Runtime) error {
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": c.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_ENCODE_PASSWORD],
 		},
 		"configMap": map[string]interface{}{
 			"iaas": map[string]interface{}{
@@ -245,9 +260,16 @@ type ProductTask struct {
 
 func (p *ProductTask) Execute(runtime connector.Runtime) error {
 	productDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "charts", "public-service", "production")
+	iaasKeys, ok := p.PipelineCache.Get(common.IAAS_AKSK)
+	if !ok {
+		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
+	}
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": p.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_ENCODE_PASSWORD],
 		},
 	}
 	helm := HelmOptions{
@@ -272,6 +294,9 @@ func (g *GlueTask) Execute(runtime connector.Runtime) error {
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": g.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"redis": map[string]interface{}{
+			"Password": iaasKeys.(map[string]string)[common.REDIS_ENCODE_PASSWORD],
 		},
 		"config": map[string]interface{}{
 			"ak": iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],

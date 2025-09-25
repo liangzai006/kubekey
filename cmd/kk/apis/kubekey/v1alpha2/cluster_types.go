@@ -136,12 +136,12 @@ type KubeSphere struct {
 }
 
 type Aicp struct {
-	Domain   string            `yaml:"domain" json:"domain,omitempty"`
-	Zone     string            `yaml:"zone" json:"zone,omitempty"`
-	Billing  bool              `yaml:"billing" json:"billing,omitempty"`
-	Hami     bool              `yaml:"hami" json:"hami,omitempty"`
-	Network  bool              `yaml:"network" json:"network,omitempty"`
-	IaasKeys map[string]string `yaml:"iaasKeys" json:"iaasKeys,omitempty"`
+	Domain  string            `yaml:"domain" json:"domain,omitempty"`
+	Zone    string            `yaml:"zone" json:"zone,omitempty"`
+	Billing bool              `yaml:"billing" json:"billing,omitempty"`
+	Hami    bool              `yaml:"hami" json:"hami,omitempty"`
+	Network bool              `yaml:"network" json:"network,omitempty"`
+	Keys    map[string]string `yaml:"keys" json:"keys,omitempty"`
 }
 
 // GenerateCertSANs is used to generate cert sans for cluster.

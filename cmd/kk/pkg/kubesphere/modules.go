@@ -259,6 +259,12 @@ func (d *DeployKsCoreModule) Init() {
 	d.Name = "DeployKubeSphereModule"
 	d.Desc = "Deploy KubeSphere"
 
+	generateKeys := &task.LocalTask{
+		Name:   "Generate KeysTask",
+		Desc:   "Generate Keys",
+		Action: new(GenerateAicpKeysTask),
+	}
+
 	DeployKsCore := &task.LocalTask{
 		Name:    "DeployKubeSphere",
 		Desc:    "Deploy KubeSphere",
@@ -297,6 +303,7 @@ func (d *DeployKsCoreModule) Init() {
 	}
 
 	d.Tasks = []task.Interface{
+		generateKeys,
 		DeployKsCore,
 		PushKseExtension,
 		pushAicp,

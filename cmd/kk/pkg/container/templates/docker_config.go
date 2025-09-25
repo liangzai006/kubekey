@@ -115,7 +115,7 @@ func DataRoot(kubeConf *common.KubeConf) string {
 	return fmt.Sprintf("\"%s\"", common.AicpDockerRootDir)
 }
 
-func BridgeIP(kubeConf *common.KubeConf) string {
+func BridgeIP(kubeConf *common.KubeConf, runtime connector.Runtime) string {
 	var bip string
 	if kubeConf.Cluster.Registry.BridgeIP != "" {
 		bip = "172.17.0.1/16"
@@ -137,6 +137,20 @@ func BridgeIP(kubeConf *common.KubeConf) string {
 	}
 
 	return bip
+}
+
+func GetCidr() string {
+	address, err := net.InterfaceAddrs()
+	if err != nil {
+		return ""
+	}
+	for _, addr := range address {
+		addr.Network()
+		if ipnet, ok := addr.(*net.IPNet); ok && !ipnet.IP.IsLoopback() {
+			return ipnet.IP.String()
+		}
+	}
+	return ""
 }
 
 // Get current host information
