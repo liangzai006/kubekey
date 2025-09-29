@@ -126,29 +126,3 @@ func (c *ComposeExist) PreCheck(runtime connector.Runtime) (bool, error) {
 	}
 	return !c.Not, nil
 }
-
-type RegistryExist struct {
-	common.KubePrepare
-	Not bool
-}
-
-func (r *RegistryExist) PreCheck(runtime connector.Runtime) (bool, error) {
-
-	switch r.KubeConf.Cluster.Registry.Type {
-	case common.Harbor:
-		output, err := runtime.GetRunner().SudoCmd("systemctl is-active harbor", false)
-		if err != nil {
-
-			return r.Not, nil
-		}
-		if strings.Contains(output, "active") {
-			return !r.Not, nil
-		}
-		return r.Not, nil
-	case common.Registry:
-		return false, nil
-	}
-
-	return false, nil
-
-}

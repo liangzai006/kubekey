@@ -121,4 +121,7 @@ const (
 	CONSOLE_SECRET_CONSOLE_KEY = "CONSOLE_SECRET_CONSOLE_KEY"
 	REDIS_PASSWORD             = "REDIS_PASSWORD"
 	REDIS_ENCODE_PASSWORD      = "REDIS_ENCODE_PASSWORD"
+	PG_AICP                    = "aicp"
+	PG_YUNIFY                  = "yunify"
+	PG_YUNIFY_ENCODE           = "PG_YUNIFY_ENCODE"
 )

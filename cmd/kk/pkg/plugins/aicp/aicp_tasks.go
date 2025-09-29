@@ -23,9 +23,21 @@ type AicpStorageTask struct {
 
 func (a *AicpStorageTask) Execute(runtime connector.Runtime) error {
 	aicpStorageDir := filepath.Join(a.KubeConf.Arg.AicpWorkDir, "charts", "aicp-storage")
+
+	iaasKeys, ok := a.PipelineCache.Get(common.IAAS_AKSK)
+	if !ok {
+		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
+	}
+
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": a.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"users": map[string]interface{}{
+			"aicpName":       common.PG_AICP,
+			"aicpPassword":   iaasKeys.(map[string]string)[common.PG_AICP],
+			"yunifyName":     common.PG_YUNIFY,
+			"yunifyPassword": iaasKeys.(map[string]string)[common.PG_YUNIFY],
 		},
 	}
 	helm := HelmOptions{
@@ -162,15 +174,15 @@ func (a *AuthServerTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": a.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
-		"redis": map[string]interface{}{
-			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-		},
 		"config": map[string]interface{}{
 			"domain": a.KubeConf.Cluster.Aicp.Domain,
 			"iaas": map[string]interface{}{
 				"zone":            a.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
 				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
+			},
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
 			},
 		},
 	}
@@ -325,6 +337,10 @@ func (a *AicpWebAppTask) Execute(runtime connector.Runtime) error {
 			"redis": map[string]interface{}{
 				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
 			},
+			"pg": map[string]interface{}{
+				"user":     common.PG_AICP,
+				"password": iaasKeys.(map[string]string)[common.PG_AICP],
+			},
 			"iaas": map[string]interface{}{
 				"zone":            a.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
@@ -397,12 +413,17 @@ func (e *EpfsTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": e.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
-		"redis": map[string]interface{}{
-			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-		},
+
 		"config": map[string]interface{}{
 			"domain":  e.KubeConf.Cluster.Aicp.Domain,
 			"billing": FormatBilling(e.KubeConf.Cluster.Aicp.Billing),
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
+			"pg": map[string]interface{}{
+				"user":     common.PG_AICP,
+				"password": iaasKeys.(map[string]string)[common.PG_AICP],
+			},
 			"iaas": map[string]interface{}{
 				"zone":            e.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
@@ -434,11 +455,12 @@ func (p *PushServerTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": p.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
-		"redis": map[string]interface{}{
-			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-		},
+
 		"config": map[string]interface{}{
 			"domain": p.KubeConf.Cluster.Aicp.Domain,
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
 			"iaas": map[string]interface{}{
 				"zone":            p.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
@@ -484,6 +506,10 @@ func (d *DockerApiServerTask) Execute(runtime connector.Runtime) error {
 			"domain": d.KubeConf.Cluster.Aicp.Domain,
 			"redis": map[string]interface{}{
 				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
+			"pg": map[string]interface{}{
+				"user":     common.PG_AICP,
+				"password": iaasKeys.(map[string]string)[common.PG_AICP],
 			},
 			"iaas": map[string]interface{}{
 				"zone":            d.KubeConf.Cluster.Aicp.Zone,
@@ -575,11 +601,16 @@ func (m *MaasTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": m.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
-		"redis": map[string]interface{}{
-			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-		},
+
 		"config": map[string]interface{}{
-			"domain":  m.KubeConf.Cluster.Aicp.Domain,
+			"domain": m.KubeConf.Cluster.Aicp.Domain,
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
+			"pg": map[string]interface{}{
+				"user":     common.PG_AICP,
+				"password": iaasKeys.(map[string]string)[common.PG_AICP],
+			},
 			"billing": FormatBilling(m.KubeConf.Cluster.Aicp.Billing),
 			"iaas": map[string]interface{}{
 				"zone":            m.KubeConf.Cluster.Aicp.Zone,
@@ -634,11 +665,16 @@ func (o *OperationTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"imageRegistry": o.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
-		"redis": map[string]interface{}{
-			"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-		},
+
 		"config": map[string]interface{}{
 			"domain": o.KubeConf.Cluster.Aicp.Domain,
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
+			"pg": map[string]interface{}{
+				"user":     common.PG_AICP,
+				"password": iaasKeys.(map[string]string)[common.PG_AICP],
+			},
 			"iaas": map[string]interface{}{
 				"zone":            o.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],

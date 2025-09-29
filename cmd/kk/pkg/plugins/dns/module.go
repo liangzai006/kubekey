@@ -25,6 +25,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
+
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns/templates"
 )
 

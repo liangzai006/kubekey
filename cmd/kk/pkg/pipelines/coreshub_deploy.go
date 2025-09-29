@@ -62,13 +62,13 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		&artifact.UnArchiveModule{Skip: noArtifact || runtime.Arg.SkipCheckMd5 || runtime.IsStepSkip("initOs")},
 		&kubernetes.StatusModule{},
 		&os.RepositoryModule{Skip: noArtifact && !runtime.Arg.InstallPackages || runtime.IsStepSkip("initOs")},
-		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS || runtime.IsStepSkip("initOs")},
+		&os.ConfigureOSModule{Skip: runtime.Cluster.System.SkipConfigureOS},
 		&os.AicpDirModule{Skip: runtime.IsStepSkip("initOs")},
 		/** deploy registry **/
-		&binaries.RegistryPackageModule{Skip: runtime.Cluster.Registry.PrivateRegistry == "" || runtime.IsStepSkip("initRegistry")},
-		&registry.RegistryCertsModule{Skip: runtime.Cluster.Registry.PrivateRegistry == "" || runtime.IsStepSkip("initRegistry")},
-		&registry.InstallRegistryModule{Skip: runtime.Cluster.Registry.PrivateRegistry == "" || runtime.IsStepSkip("initRegistry")},
-		&images.CopyImagesToRegistryModule{Skip: skipPushImages || runtime.IsStepSkip("initRegistry")},
+		&binaries.RegistryPackageModule{Skip: runtime.Cluster.Registry.PrivateRegistry == ""},
+		&registry.RegistryCertsModule{Skip: runtime.Cluster.Registry.PrivateRegistry == ""},
+		&registry.InstallRegistryModule{Skip: runtime.Cluster.Registry.PrivateRegistry == ""},
+		&images.CopyImagesToRegistryModule{Skip: skipPushImages},
 		/** deploy kubernetes **/
 		&binaries.NodeBinariesModule{Skip: runtime.IsStepSkip("createCluster")},
 		&filesystem.ChownWorkDirModule{},

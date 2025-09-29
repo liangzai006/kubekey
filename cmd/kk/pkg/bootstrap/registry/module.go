@@ -28,6 +28,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/prepare"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/task"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/images"
 )
 
 type RegistryCertsModule struct {
@@ -264,7 +265,7 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Name: "SyncHarborPackage",
 		Desc: "Sync harbor package",
 		Prepare: &prepare.PrepareCollection{
-			&container.RegistryExist{Not: true},
+			&images.HarborExist{Not: true},
 		},
 		Hosts:    i.Runtime.GetHostsByRole(common.Registry),
 		Action:   new(SyncHarborPackage),
@@ -278,7 +279,7 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Desc:  "Generate harbor service",
 		Hosts: i.Runtime.GetHostsByRole(common.Registry),
 		Prepare: &prepare.PrepareCollection{
-			&container.RegistryExist{Not: true},
+			&images.HarborExist{Not: true},
 		},
 		Action: &action.Template{
 			Template: templates.HarborServiceTempl,
@@ -296,7 +297,7 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Desc:  "Generate harbor config",
 		Hosts: i.Runtime.GetHostsByRole(common.Registry),
 		Prepare: &prepare.PrepareCollection{
-			&container.RegistryExist{Not: true},
+			&images.HarborExist{Not: true},
 		},
 		Action:   new(GenerateHarborConfig),
 		Parallel: true,
@@ -308,7 +309,7 @@ func InstallHarbor(i *InstallRegistryModule) []task.Interface {
 		Desc:  "start harbor",
 		Hosts: i.Runtime.GetHostsByRole(common.Registry),
 		Prepare: &prepare.PrepareCollection{
-			&container.RegistryExist{Not: true},
+			&images.HarborExist{Not: true},
 		},
 		Action:   new(StartHarbor),
 		Parallel: true,

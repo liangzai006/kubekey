@@ -27,11 +27,11 @@ import (
 	"sort"
 	"strings"
 	"time"
-	"unicode"
 
 	dockerTypes "github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	dockerclient "github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/ghodss/yaml"
 
 	"github.com/pkg/errors"
@@ -39,6 +39,7 @@ import (
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
 	corev1 "k8s.io/api/core/v1"
+	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/cli-runtime/pkg/resource"
@@ -758,19 +759,31 @@ func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
 	// if keys is not set, get from configmap
 	if len(keys) == 0 {
 		keysConfig, err := k8sClient.CoreV1().ConfigMaps("kube-system").Get(ctx, cmName, metav1.GetOptions{})
-		if err != nil {
+		if err == nil && len(keysConfig.Data) != 0 {
+			keys = keysConfig.Data
+			remoteGet = true
+		} else {
+			keys = make(map[string]string)
+		}
+		if err != nil && !kubeerrors.IsNotFound(err) {
 			return err
 		}
-		keys = keysConfig.Data
-		remoteGet = true
 	}
 
 	// if keys is already generated, return
-	if len(keys) == 11 {
-		i.PipelineCache.Set(common.IAAS_AKSK, keys)
-		return nil
+	if len(keys) == 14 {
+		emptyValue := false
+		for _, v := range keys {
+			if v == "" {
+				emptyValue = true
+				break
+			}
+		}
+		if !emptyValue {
+			i.PipelineCache.Set(common.IAAS_AKSK, keys)
+			return nil
+		}
 	}
-
 	dockerClient, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
 		return err
@@ -789,10 +802,14 @@ func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
 		common.BOSS_KEY_ID,
 		common.BOSS_SECRET_KEY,
 		common.REDIS_PASSWORD,
+		common.PG_AICP,
+		common.PG_YUNIFY,
 	}
 
 	for _, k := range keyFields {
-		keys[k] = generateRandomString(k, keys)
+		if _, ok := keys[k]; !ok {
+			keys[k] = generateRandomString(k, keys)
+		}
 	}
 
 	encodeFields := map[string]string{
@@ -800,6 +817,7 @@ func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
 		common.CONSOLE_SECRET_CONSOLE_KEY: common.CONSOLE_SECRET_KEY,
 		common.BOSS_SECRET_CONSOLE_KEY:    common.BOSS_SECRET_KEY,
 		common.REDIS_ENCODE_PASSWORD:      common.REDIS_PASSWORD,
+		common.PG_YUNIFY_ENCODE:           common.PG_YUNIFY,
 	}
 
 	for k, v := range encodeFields {
@@ -807,10 +825,11 @@ func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
 		if !ok && key == "" {
 			keys[v] = generateRandomString(k, keys)
 		}
-		dockerGenKey, err := runDockerAction(ctx, dockerClient, pullImage)
+		dockerGenKey, err := runDockerAction(ctx, dockerClient, pullImage, []string{key})
 		if err != nil {
 			return err
 		}
+		klog.Infof("generate encode string for %s: %s", k, dockerGenKey)
 		keys[k] = dockerGenKey
 	}
 
@@ -849,10 +868,11 @@ func pullDockerImage(ctx context.Context, dockerClient *dockerclient.Client, ima
 	return nil
 }
 
-func runDockerAction(ctx context.Context, dockerClient *dockerclient.Client, image string) (string, error) {
+func runDockerAction(ctx context.Context, dockerClient *dockerclient.Client, image string, cmd []string) (string, error) {
 
 	container, err := dockerClient.ContainerCreate(ctx, &container.Config{
 		Image: image,
+		Cmd:   cmd,
 	}, nil, nil, nil, "generate-key")
 	if err != nil {
 		return "", fmt.Errorf("create container failed: %w", err)
@@ -870,49 +890,43 @@ func runDockerAction(ctx context.Context, dockerClient *dockerclient.Client, ima
 	if err != nil {
 		return "", fmt.Errorf("get container logs failed: %w", err)
 	}
+	defer logs.Close()
 
 	logBytes, err := io.ReadAll(logs)
 	if err != nil {
 		return "", fmt.Errorf("read container logs failed: %w", err)
 	}
 
-	// filter bad characters
-	cleanLog := make([]rune, 0, len(logBytes))
-	for _, b := range logBytes {
-		if b >= 32 && b <= 126 {
-			if unicode.IsPrint(rune(b)) {
-				cleanLog = append(cleanLog, rune(b))
-			}
-		}
+	var stdout, stderr bytes.Buffer
+	_, err = stdcopy.StdCopy(&stdout, &stderr, logs)
+	if err != nil {
+		return "", fmt.Errorf("stdcopy failed: %w", err)
 	}
 
-	logs.Close()
 	dockerClient.ContainerRemove(ctx, container.ID, dockerTypes.ContainerRemoveOptions{
 		Force: true,
 	})
-	return string(cleanLog), nil
+	return string(logBytes), nil
 }
 
 func generateRandomString(keysTag string, keys map[string]string) string {
+	key_id := ""
 	if strings.HasSuffix(keysTag, "_KEY_ID") && len(keys[keysTag]) != 20 {
-		key_id := ""
 		letters := "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 		for i := 0; i < 20; i++ {
 			idx := rand.Intn(len(letters))
 			key_id += string(letters[idx])
 		}
-		return key_id
 	} else if strings.HasSuffix(keysTag, "_SECRET_KEY") && len(keys[keysTag]) != 40 {
-		secret_key := ""
 		letters := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ012356789"
 		for i := 0; i < 40; i++ {
 			idx := rand.Intn(len(letters))
-			secret_key += string(letters[idx])
+			key_id += string(letters[idx])
 		}
-		return secret_key
-	} else if len(keys[keysTag]) != 16 {
-		return rand.String(16)
+	} else if len(keys[keysTag]) != 15 {
+		key_id = rand.String(15)
 	}
-	return keys[keysTag]
+	klog.Infof("generate random string for %s: %s", keysTag, key_id)
+	return key_id
 
 }
