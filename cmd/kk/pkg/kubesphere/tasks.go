@@ -892,11 +892,6 @@ func runDockerAction(ctx context.Context, dockerClient *dockerclient.Client, ima
 	}
 	defer logs.Close()
 
-	logBytes, err := io.ReadAll(logs)
-	if err != nil {
-		return "", fmt.Errorf("read container logs failed: %w", err)
-	}
-
 	var stdout, stderr bytes.Buffer
 	_, err = stdcopy.StdCopy(&stdout, &stderr, logs)
 	if err != nil {
@@ -906,7 +901,7 @@ func runDockerAction(ctx context.Context, dockerClient *dockerclient.Client, ima
 	dockerClient.ContainerRemove(ctx, container.ID, dockerTypes.ContainerRemoveOptions{
 		Force: true,
 	})
-	return string(logBytes), nil
+	return stdout.String(), nil
 }
 
 func generateRandomString(keysTag string, keys map[string]string) string {
