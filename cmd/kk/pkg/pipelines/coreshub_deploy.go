@@ -149,7 +149,6 @@ func CoresHubDeploy(args common.Argument, downloadCmd string) error {
 	return nil
 }
 
-// console   10.23.0.2 console.core.com   admin Zhu88jie!
 type PrintDeployInfoResult struct {
 	Name     string `table:"name"`
 	Ip       string `table:"ip"`
@@ -180,8 +179,8 @@ func PrintDeployInfo(runtime *common.KubeRuntime) {
 			Name:     "console",
 			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
 			Domain:   fmt.Sprintf("console.%s", runtime.Cluster.Aicp.Domain),
-			Username: fmt.Sprintf("admin@%s", runtime.Cluster.Aicp.Domain),
-			Password: "需boss重置密码",
+			Username: "需要boss添加用户",
+			Password: "需要boss添加用户",
 		},
 		{
 			Name:     "boss",

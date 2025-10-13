@@ -589,12 +589,22 @@ type ApplyInstallPlanTask struct {
 
 // 定义优先级顺序
 var resourcePriority = map[string]int{
-	"opensearch":           1,
-	"vector":               2,
-	"whizard-telemetry":    3,
-	"whizard-monitoring":   4,
-	"whizard-alerting":     5,
-	"whizard-notification": 6,
+	"kubesphere-logging-system":  1,
+	"opensearch-internal-secret": 2,
+	"opensearch":                 2,
+	"vector":                     3,
+	"whizard-telemetry":          5,
+	"whizard-monitoring":         6,
+	"whizard-alerting":           7,
+	"whizard-notification":       8,
+}
+var waitResource = map[string]int{
+	"opensearch":           2,
+	"vector":               3,
+	"whizard-telemetry":    5,
+	"whizard-monitoring":   6,
+	"whizard-alerting":     7,
+	"whizard-notification": 8,
 }
 
 func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
@@ -663,9 +673,9 @@ func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
 			return err
 		}
 
-		_, waitReourceIsExist := resourcePriority[r.Name]
+		_, waitResourceIsExist := waitResource[r.Name]
 
-		if waitReourceIsExist {
+		if waitResourceIsExist {
 			err = WaitForResource(func() (bool, error) {
 				resource, err := helper.Get(r.Namespace, r.Name)
 				if err != nil {
@@ -901,7 +911,7 @@ func runDockerAction(ctx context.Context, dockerClient *dockerclient.Client, ima
 	dockerClient.ContainerRemove(ctx, container.ID, dockerTypes.ContainerRemoveOptions{
 		Force: true,
 	})
-	return stdout.String(), nil
+	return strings.Trim(stdout.String(), "\n"), nil
 }
 
 func generateRandomString(keysTag string, keys map[string]string) string {
