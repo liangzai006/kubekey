@@ -33,7 +33,7 @@ func NewInitDependenciesPipeline(runtime *common.KubeRuntime) error {
 
 	m := []module.Module{
 		&precheck.GreetingsModule{},
-		&artifact.UnArchiveModule{Skip: noArtifact},
+		&artifact.UnArchiveModule{Skip: noArtifact || runtime.Arg.SkipCheckMd5},
 		&kubernetes.StatusModule{},
 		&os.RepositoryModule{Skip: noArtifact},
 		&os.RepositoryOnlineModule{Skip: !noArtifact},

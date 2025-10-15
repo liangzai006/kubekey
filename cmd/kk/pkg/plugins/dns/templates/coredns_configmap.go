@@ -118,7 +118,7 @@ func GenerateDnsHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf
 	}
 
 	if len(runtime.GetHostsByRole(common.Registry)) > 0 && kubeConf.Cluster.Registry.PrivateRegistry != "" {
-		registryUrl := fmt.Sprintf("%s %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), kubeConf.Cluster.Registry.GetHost())
+		registryUrl := fmt.Sprintf("%s %s", runtime.GetHostsByRole(common.Registry)[0].GetInternalIPv4Address(), kubeConf.Cluster.Registry.GetRegistryDomain())
 		if !strings.Contains(kubeConf.Cluster.DNS.DNSEtcHosts, registryUrl) {
 			kubeConf.Cluster.DNS.DNSEtcHosts = fmt.Sprintf("%s\n%s", registryUrl, kubeConf.Cluster.DNS.DNSEtcHosts)
 		}

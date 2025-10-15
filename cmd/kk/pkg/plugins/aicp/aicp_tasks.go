@@ -663,7 +663,7 @@ func (o *OperationTask) Execute(runtime connector.Runtime) error {
 
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
-			"imageRegistry": o.KubeConf.Cluster.Registry.PrivateRegistry,
+			"offlineRepo": o.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 
 		"config": map[string]interface{}{
@@ -719,8 +719,8 @@ type VolcanoTask struct {
 func (v *VolcanoTask) Execute(runtime connector.Runtime) error {
 	volcanoDir := filepath.Join(v.KubeConf.Arg.AicpWorkDir, "charts", "volcano")
 	vals := map[string]interface{}{
-		"global": map[string]interface{}{
-			"repository": v.KubeConf.Cluster.Registry.PrivateRegistry,
+		"basic": map[string]interface{}{
+			"repo": v.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 	}
 	helm := HelmOptions{

@@ -31,6 +31,7 @@ type InitOsOptions struct {
 	ClusterCfgFile     string
 	Artifact           string
 	RepositoryServerIp net.IP
+	SkipCheckMd5       bool
 }
 
 func NewInitOsOptions() *InitOsOptions {
@@ -62,6 +63,7 @@ func (o *InitOsOptions) Run() error {
 		Debug:        o.CommonOptions.Verbose,
 		Artifact:     o.Artifact,
 		RepositoryIp: o.RepositoryServerIp,
+		SkipCheckMd5: o.SkipCheckMd5,
 	}
 	return pipelines.InitDependencies(arg)
 }
@@ -89,4 +91,5 @@ func (o *InitOsOptions) AddFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&o.ClusterCfgFile, "filename", "f", "", "Path to a configuration file")
 	cmd.Flags().StringVarP(&o.Artifact, "artifact", "a", "", "Path to a KubeKey artifact")
 	cmd.Flags().IPVarP(&o.RepositoryServerIp, "repository-server-ip", "r", nil, "Repository server ip")
+	cmd.Flags().BoolVarP(&o.SkipCheckMd5, "skip-check-md5", "", false, "Skip checking md5 of downloaded files")
 }
