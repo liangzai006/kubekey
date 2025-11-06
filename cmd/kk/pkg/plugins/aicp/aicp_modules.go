@@ -28,6 +28,16 @@ func (h *DeployAicpServiceModule) Init() {
 		},
 	}
 
+	configServerTask := &task.LocalTask{
+		Name:    "ConfigServerTask",
+		Desc:    "Deploy Config Server Component",
+		Prepare: &HelmIsInstalled{Not: true, Name: "config-server", Namespace: "aicp-system"},
+		Action:  new(ConfigServerTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "config-server",
+			Namespace: "aicp-system",
+		},
+	}
 	certManagerTask := &task.LocalTask{
 		Name:    "CertManagerTask",
 		Desc:    "Deploy CertManager Component",
@@ -252,9 +262,29 @@ func (h *DeployAicpServiceModule) Init() {
 			Namespace: "volcano-system",
 		},
 	}
-
+	ResourceHubTask := &task.LocalTask{
+		Name:    "ResourceHubTask",
+		Desc:    "Deploy Resource Hub Component",
+		Prepare: &HelmIsInstalled{Not: true, Name: "resourcehub", Namespace: "aicp-system"},
+		Action:  new(ResourceHubTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "resourcehub",
+			Namespace: "aicp-system",
+		},
+	}
+	EventBusTask := &task.LocalTask{
+		Name:    "EventBusTask",
+		Desc:    "Deploy Event Bus Component",
+		Prepare: &HelmIsInstalled{Not: true, Name: "eventbus", Namespace: "aicp-system"},
+		Action:  new(EventBusTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "eventbus",
+			Namespace: "aicp-system",
+		},
+	}
 	h.Tasks = []task.Interface{
 		aicpStorageTask,
+		configServerTask,
 		certManagerTask,
 		istioTask,
 		ClusterLocalGatewayTask,
@@ -276,5 +306,7 @@ func (h *DeployAicpServiceModule) Init() {
 		MaasTask,
 		OperationTask,
 		LwsTask,
+		ResourceHubTask,
+		EventBusTask,
 	}
 }

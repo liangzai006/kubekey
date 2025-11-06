@@ -139,7 +139,16 @@ func (d *DeployIaaSModule) Init() {
 			Namespace: "pitrix",
 		},
 	}
-
+	MsgHubTask := &task.LocalTask{
+		Name:    "MsgHubTask",
+		Desc:    "Deploy Msg Hub Component",
+		Prepare: &HelmIsInstalled{Not: true, Name: "msghub", Namespace: "pitrix"},
+		Action:  new(MsgHubTask),
+		Rollback: &DeployFailRollBack{
+			Name:      "msghub",
+			Namespace: "pitrix",
+		},
+	}
 	d.Tasks = []task.Interface{
 		ProductManagerServerTask,
 		TeamTask,
@@ -152,6 +161,7 @@ func (d *DeployIaaSModule) Init() {
 		DocsTask,
 		BillingTask,
 		WarehouseTask,
+		MsgHubTask,
 		NginxTask,
 	}
 }

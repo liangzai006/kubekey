@@ -453,3 +453,38 @@ func (n *NginxTask) Execute(runtime connector.Runtime) error {
 	}
 	return helm.Install()
 }
+
+type MsgHubTask struct {
+	common.KubeAction
+}
+
+func (m *MsgHubTask) Execute(runtime connector.Runtime) error {
+	msgHubDir := filepath.Join(m.KubeConf.Arg.AicpWorkDir, "charts", "public-service", "msghub")
+	iaasKeys, ok := m.PipelineCache.Get(common.IAAS_AKSK)
+	if !ok {
+		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
+	}
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"offlineRepo": m.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"config": map[string]interface{}{
+			"domain": m.KubeConf.Cluster.Aicp.Domain,
+			"iaas": map[string]interface{}{
+				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
+				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
+			},
+		},
+		"pgsql": map[string]interface{}{
+			"user":     common.PG_YUNIFY,
+			"password": iaasKeys.(map[string]string)[common.PG_YUNIFY_ENCODE],
+		},
+	}
+	helm := HelmOptions{
+		Name:      "msghub",
+		Namespace: "pitrix",
+		ChartPath: msgHubDir,
+		Values:    vals,
+	}
+	return helm.Install()
+}

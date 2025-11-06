@@ -49,6 +49,66 @@ func (a *AicpStorageTask) Execute(runtime connector.Runtime) error {
 	return helm.Install()
 }
 
+type ConfigServerTask struct {
+	common.KubeAction
+}
+
+func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
+	configServerDir := filepath.Join(c.KubeConf.Arg.AicpWorkDir, "charts", "config-server")
+	iaasKeys, ok := c.PipelineCache.Get(common.IAAS_AKSK)
+	if !ok {
+		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
+	}
+
+	auths := registry.DockerRegistryAuthEntries(c.KubeConf.Cluster.Registry.Auths)
+	if _, ok := auths[c.KubeConf.Cluster.Registry.GetHost()]; !ok {
+		return fmt.Errorf("registry auth not found: %s", c.KubeConf.Cluster.Registry.GetHost())
+	}
+	auth := auths[c.KubeConf.Cluster.Registry.GetHost()]
+
+	protocol := "https"
+	if auth.PlainHTTP {
+		protocol = "http"
+	}
+
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"offlineRepo": c.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"db": map[string]interface{}{
+			"username": common.PG_AICP,
+			"password": iaasKeys.(map[string]string)[common.PG_AICP],
+		},
+		"config": map[string]interface{}{
+			"domain":  c.KubeConf.Cluster.Aicp.Domain,
+			"sshHost": c.KubeConf.Cluster.ControlPlaneEndpoint.Address,
+			"billing": strconv.FormatBool(c.KubeConf.Cluster.Aicp.Billing),
+			"redis": map[string]interface{}{
+				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+			},
+			"iaas": map[string]interface{}{
+				"zone":            c.KubeConf.Cluster.Aicp.Zone,
+				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
+				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
+			},
+			"docker": map[string]interface{}{
+				"host":     c.KubeConf.Cluster.Registry.GetHost(),
+				"protocol": protocol,
+				"username": auth.Username,
+				"password": auth.Password,
+			},
+		},
+	}
+
+	helm := HelmOptions{
+		Name:      "config-server",
+		Namespace: "aicp-system",
+		ChartPath: configServerDir,
+		Values:    vals,
+	}
+	return helm.Install()
+}
+
 type CertManagerTask struct {
 	common.KubeAction
 }
@@ -727,6 +787,47 @@ func (v *VolcanoTask) Execute(runtime connector.Runtime) error {
 		Name:      "volcano",
 		Namespace: "volcano-system",
 		ChartPath: volcanoDir,
+		Values:    vals,
+	}
+	return helm.Install()
+}
+
+type EventBusTask struct {
+	common.KubeAction
+}
+
+func (e *EventBusTask) Execute(runtime connector.Runtime) error {
+	eventBusDir := filepath.Join(e.KubeConf.Arg.AicpWorkDir, "charts", "eventbus")
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"offlineRepo": e.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+	}
+
+	helm := HelmOptions{
+		Name:      "eventbus",
+		Namespace: "aicp-system",
+		ChartPath: eventBusDir,
+		Values:    vals,
+	}
+	return helm.Install()
+}
+
+type ResourceHubTask struct {
+	common.KubeAction
+}
+
+func (r *ResourceHubTask) Execute(runtime connector.Runtime) error {
+	resourceHubDir := filepath.Join(r.KubeConf.Arg.AicpWorkDir, "charts", "resourcehub")
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"offlineRepo": r.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+	}
+	helm := HelmOptions{
+		Name:      "resourcehub",
+		Namespace: "aicp-system",
+		ChartPath: resourceHubDir,
 		Values:    vals,
 	}
 	return helm.Install()
