@@ -105,6 +105,22 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 		Namespace: "aicp-system",
 		ChartPath: configServerDir,
 		Values:    vals,
+		PreHook: func(ctx context.Context, kubeClient kubernetes.Interface) error {
+			_, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "aicp-system",
+					Labels: map[string]string{
+						"istio-injection": "enabled",
+						"control-plane":   "aicp-system",
+					},
+				},
+			}, metav1.CreateOptions{})
+			if err != nil && !apierror.IsAlreadyExists(err) {
+				return err
+			}
+
+			return nil
+		},
 	}
 	return helm.Install()
 }
@@ -418,22 +434,6 @@ func (a *AicpWebAppTask) Execute(runtime connector.Runtime) error {
 		Namespace: "aicp-system",
 		ChartPath: aicpWebAppDir,
 		Values:    vals,
-		PreHook: func(ctx context.Context, kubeClient kubernetes.Interface) error {
-			_, err := kubeClient.CoreV1().Namespaces().Create(ctx, &corev1.Namespace{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "aicp-system",
-					Labels: map[string]string{
-						"istio-injection": "enabled",
-						"control-plane":   "aicp-system",
-					},
-				},
-			}, metav1.CreateOptions{})
-			if err != nil && !apierror.IsAlreadyExists(err) {
-				return err
-			}
-
-			return nil
-		},
 	}
 	return helm.Install()
 }

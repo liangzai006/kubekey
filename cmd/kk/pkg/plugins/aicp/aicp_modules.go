@@ -284,10 +284,10 @@ func (h *DeployAicpServiceModule) Init() {
 	}
 	h.Tasks = []task.Interface{
 		aicpStorageTask,
-		configServerTask,
 		certManagerTask,
 		istioTask,
 		ClusterLocalGatewayTask,
+		configServerTask,
 		KubeflowTask,
 		AuthServerTask,
 		PodDefaultsTask,
