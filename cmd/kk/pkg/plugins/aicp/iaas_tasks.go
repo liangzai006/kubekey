@@ -479,6 +479,9 @@ func (m *MsgHubTask) Execute(runtime connector.Runtime) error {
 			"user":     common.PG_YUNIFY,
 			"password": iaasKeys.(map[string]string)[common.PG_YUNIFY_ENCODE],
 		},
+		"redis": map[string]interface{}{
+			"password": iaasKeys.(map[string]string)[common.REDIS_ENCODE_PASSWORD],
+		},
 	}
 	helm := HelmOptions{
 		Name:      "msghub",
