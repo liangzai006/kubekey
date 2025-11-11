@@ -10,6 +10,7 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/release"
+	"helm.sh/helm/v3/pkg/storage/driver"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
@@ -21,7 +22,6 @@ type HelmOptions struct {
 	ChartPath string                 // 本地 chart 路径 或 repo 名称
 	Values    map[string]interface{} // 自定义 values
 	PreHook   func(ctx context.Context, kubeClient kubernetes.Interface) error
-	PostHook  func(ctx context.Context, kubeClient kubernetes.Interface, rel *release.Release) error
 }
 
 type BaseHelm interface {
@@ -70,22 +70,36 @@ func (h *HelmOptions) Install() error {
 		}
 	}
 
-	i := action.NewInstall(cfg)
-	i.ReleaseName = h.Name
-	i.Namespace = h.Namespace
-	i.CreateNamespace = true
-	i.Timeout = timeout
-	i.Wait = true
-	rel, err := i.RunWithContext(ctx, chart, h.Values)
-	if err != nil {
-		klog.Errorf("install %s failed, %s\n", h.Name, err)
+	get := action.NewGet(cfg)
+	_, err = get.Run(h.Name)
+	if err != nil && err != driver.ErrReleaseNotFound {
 		return err
 	}
 
-	if h.PostHook != nil {
-		if err := h.PostHook(ctx, kubeClient, rel); err != nil {
+	if err == driver.ErrReleaseNotFound {
+
+		i := action.NewInstall(cfg)
+		i.ReleaseName = h.Name
+		i.Namespace = h.Namespace
+		i.CreateNamespace = true
+		i.Timeout = timeout
+		i.Wait = true
+		_, err = i.RunWithContext(ctx, chart, h.Values)
+		if err != nil {
+			klog.Errorf("install %s failed, %s\n", h.Name, err)
 			return err
 		}
+	} else {
+		u := action.NewUpgrade(cfg)
+		u.Namespace = h.Namespace
+		u.Wait = true
+		u.Timeout = timeout
+		_, err = u.RunWithContext(ctx, h.Name, chart, h.Values)
+		if err != nil {
+			klog.Errorf("upgrade %s failed, %s\n", h.Name, err)
+			return err
+		}
+
 	}
 
 	return nil

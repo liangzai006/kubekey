@@ -5,6 +5,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"helm.sh/helm/v3/pkg/action"
+	"helm.sh/helm/v3/pkg/release"
 	"helm.sh/helm/v3/pkg/storage/driver"
 )
 
@@ -34,11 +35,12 @@ func (h *HelmIsInstalled) PreCheck(runtime connector.Runtime) (bool, error) {
 	if err != nil && err != driver.ErrReleaseNotFound {
 		return h.Not, err
 	}
-	if helmrelease != nil {
-		return !h.Not, nil
+
+	if helmrelease.Info.Status == release.StatusFailed {
+		return h.Not, nil
 	}
 
-	return h.Not, nil
+	return !h.Not, nil
 }
 
 type GpuOperatorPrepare struct {
