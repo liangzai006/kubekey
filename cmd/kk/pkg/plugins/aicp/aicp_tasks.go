@@ -3,6 +3,8 @@ package aicp
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
 
 	"path/filepath"
 	"strconv"
@@ -241,25 +243,10 @@ type AuthServerTask struct {
 
 func (a *AuthServerTask) Execute(runtime connector.Runtime) error {
 	authServerDir := filepath.Join(a.KubeConf.Arg.AicpWorkDir, "charts", "auth-server")
-	iaasKeys, ok := a.PipelineCache.Get(common.IAAS_AKSK)
-	if !ok {
-		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
-	}
 
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": a.KubeConf.Cluster.Registry.PrivateRegistry,
-		},
-		"config": map[string]interface{}{
-			"domain": a.KubeConf.Cluster.Aicp.Domain,
-			"iaas": map[string]interface{}{
-				"zone":            a.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
 		},
 	}
 	helm := HelmOptions{
@@ -321,9 +308,47 @@ type ProfilesTask struct {
 
 func (p *ProfilesTask) Execute(runtime connector.Runtime) error {
 	profilesDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "charts", "profiles")
+
+	ipPool := []string{}
+
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return fmt.Errorf(" get interfaces failed: %v", err)
+	}
+	for _, iface := range ifaces {
+		// skip interfaces that are not up or have no IP
+		if iface.Flags&net.FlagUp == 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipNet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+
+			ip := ipNet.IP
+			if ip.IsLoopback() || ip.To4() == nil {
+				continue
+			}
+			ipNetStr := &net.IPNet{
+				IP:   ip.Mask(ipNet.Mask),
+				Mask: ipNet.Mask,
+			}
+			ipPool = append(ipPool, ipNetStr.String())
+		}
+
+	}
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": p.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+		"config": map[string]interface{}{
+			"toIpBlockExceptCidrs": strings.Join(ipPool, ","),
 		},
 	}
 
@@ -386,47 +411,9 @@ type AicpWebAppTask struct {
 func (a *AicpWebAppTask) Execute(runtime connector.Runtime) error {
 	aicpWebAppDir := filepath.Join(a.KubeConf.Arg.AicpWorkDir, "charts", "aicp-web-app")
 
-	iaasKeys, ok := a.PipelineCache.Get(common.IAAS_AKSK)
-	if !ok {
-		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
-	}
-
-	auths := registry.DockerRegistryAuthEntries(a.KubeConf.Cluster.Registry.Auths)
-	if _, ok := auths[a.KubeConf.Cluster.Registry.GetHost()]; !ok {
-		return fmt.Errorf("registry auth not found: %s", a.KubeConf.Cluster.Registry.GetHost())
-	}
-	auth := auths[a.KubeConf.Cluster.Registry.GetHost()]
-
-	protocol := "https"
-	if auth.PlainHTTP {
-		protocol = "http"
-	}
-
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": a.KubeConf.Cluster.Registry.PrivateRegistry,
-		},
-		"config": map[string]interface{}{
-			"domain":  a.KubeConf.Cluster.Aicp.Domain,
-			"sshHost": a.KubeConf.Cluster.ControlPlaneEndpoint.Address,
-			"billing": strconv.FormatBool(a.KubeConf.Cluster.Aicp.Billing),
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
-			"pg": map[string]interface{}{
-				"user":     common.PG_AICP,
-				"password": iaasKeys.(map[string]string)[common.PG_AICP],
-			},
-			"iaas": map[string]interface{}{
-				"zone":            a.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
-			"docker": map[string]interface{}{
-				"protocol": protocol,
-				"username": auth.Username,
-				"password": auth.Password,
-			},
 		},
 	}
 	helm := HelmOptions{
@@ -464,31 +451,10 @@ type EpfsTask struct {
 
 func (e *EpfsTask) Execute(runtime connector.Runtime) error {
 	epfsDir := filepath.Join(e.KubeConf.Arg.AicpWorkDir, "charts", "epfs")
-	iaasKeys, ok := e.PipelineCache.Get(common.IAAS_AKSK)
-	if !ok {
-		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
-	}
 
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": e.KubeConf.Cluster.Registry.PrivateRegistry,
-		},
-
-		"config": map[string]interface{}{
-			"domain":  e.KubeConf.Cluster.Aicp.Domain,
-			"billing": FormatBilling(e.KubeConf.Cluster.Aicp.Billing),
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
-			"pg": map[string]interface{}{
-				"user":     common.PG_AICP,
-				"password": iaasKeys.(map[string]string)[common.PG_AICP],
-			},
-			"iaas": map[string]interface{}{
-				"zone":            e.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
 		},
 	}
 	helm := HelmOptions{
@@ -506,26 +472,10 @@ type PushServerTask struct {
 
 func (p *PushServerTask) Execute(runtime connector.Runtime) error {
 	pushServerDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "charts", "push-server")
-	iaasKeys, ok := p.PipelineCache.Get(common.IAAS_AKSK)
-	if !ok {
-		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
-	}
 
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": p.KubeConf.Cluster.Registry.PrivateRegistry,
-		},
-
-		"config": map[string]interface{}{
-			"domain": p.KubeConf.Cluster.Aicp.Domain,
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
-			"iaas": map[string]interface{}{
-				"zone":            p.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
 		},
 	}
 	helm := HelmOptions{
@@ -544,44 +494,9 @@ type DockerApiServerTask struct {
 func (d *DockerApiServerTask) Execute(runtime connector.Runtime) error {
 	dockerApiServerDir := filepath.Join(d.KubeConf.Arg.AicpWorkDir, "charts", "docker-api-server")
 
-	iaasKeys, ok := d.PipelineCache.Get(common.IAAS_AKSK)
-	if !ok {
-		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
-	}
-
-	auths := registry.DockerRegistryAuthEntries(d.KubeConf.Cluster.Registry.Auths)
-	if _, ok := auths[d.KubeConf.Cluster.Registry.GetHost()]; !ok {
-		return fmt.Errorf("registry auth not found: %s", d.KubeConf.Cluster.Registry.GetHost())
-	}
-	auth := auths[d.KubeConf.Cluster.Registry.GetHost()]
-	protocol := "https"
-	if auth.PlainHTTP {
-		protocol = "http"
-	}
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": d.KubeConf.Cluster.Registry.PrivateRegistry,
-		},
-		"config": map[string]interface{}{
-			"domain": d.KubeConf.Cluster.Aicp.Domain,
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
-			"pg": map[string]interface{}{
-				"user":     common.PG_AICP,
-				"password": iaasKeys.(map[string]string)[common.PG_AICP],
-			},
-			"iaas": map[string]interface{}{
-				"zone":            d.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
-			"docker": map[string]interface{}{
-				"protocol": protocol,
-				"host":     d.KubeConf.Cluster.Registry.GetHost(),
-				"username": auth.Username,
-				"password": auth.Password,
-			},
 		},
 	}
 	helm := HelmOptions{
@@ -648,41 +563,14 @@ func (m *MaasTask) Execute(runtime connector.Runtime) error {
 		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
 	}
 
-	auths := registry.DockerRegistryAuthEntries(m.KubeConf.Cluster.Registry.Auths)
-	if _, ok := auths[m.KubeConf.Cluster.Registry.GetHost()]; !ok {
-		return fmt.Errorf("registry auth not found: %s", m.KubeConf.Cluster.Registry.GetHost())
-	}
-	auth := auths[m.KubeConf.Cluster.Registry.GetHost()]
-	protocol := "https"
-	if auth.PlainHTTP {
-		protocol = "http"
-	}
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": m.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 
-		"config": map[string]interface{}{
-			"domain": m.KubeConf.Cluster.Aicp.Domain,
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
-			"pg": map[string]interface{}{
-				"user":     common.PG_AICP,
-				"password": iaasKeys.(map[string]string)[common.PG_AICP],
-			},
-			"billing": FormatBilling(m.KubeConf.Cluster.Aicp.Billing),
-			"iaas": map[string]interface{}{
-				"zone":            m.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
-			"docker": map[string]interface{}{
-				"protocol": protocol,
-				"host":     m.KubeConf.Cluster.Registry.GetHost(),
-				"username": auth.Username,
-				"password": auth.Password,
-			},
+		"pg": map[string]interface{}{
+			"user":     common.PG_AICP,
+			"password": iaasKeys.(map[string]string)[common.PG_AICP],
 		},
 	}
 	helm := HelmOptions{
@@ -726,20 +614,9 @@ func (o *OperationTask) Execute(runtime connector.Runtime) error {
 			"offlineRepo": o.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 
-		"config": map[string]interface{}{
-			"domain": o.KubeConf.Cluster.Aicp.Domain,
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
-			"pg": map[string]interface{}{
-				"user":     common.PG_AICP,
-				"password": iaasKeys.(map[string]string)[common.PG_AICP],
-			},
-			"iaas": map[string]interface{}{
-				"zone":            o.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
+		"pg": map[string]interface{}{
+			"user":     common.PG_AICP,
+			"password": iaasKeys.(map[string]string)[common.PG_AICP],
 		},
 	}
 	helm := HelmOptions{

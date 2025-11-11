@@ -30,22 +30,22 @@ func (p *ProductManagerServerTask) Execute(runtime connector.Runtime) error {
 			"repository": p.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 
-		"config": map[string]interface{}{
-			"domain": p.KubeConf.Cluster.Aicp.Domain,
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
-			"pg": map[string]interface{}{
-				"user":     common.PG_AICP,
-				"password": iaasKeys.(map[string]string)[common.PG_AICP],
-			},
-			"iaas": map[string]interface{}{
-				"regions":         p.KubeConf.Cluster.Aicp.Zone,
-				"region":          p.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
-			},
+		// "config": map[string]interface{}{
+		// 	"domain": p.KubeConf.Cluster.Aicp.Domain,
+		// 	"redis": map[string]interface{}{
+		// 		"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
+		// 	},
+		"pg": map[string]interface{}{
+			"user":     common.PG_AICP,
+			"password": iaasKeys.(map[string]string)[common.PG_AICP],
 		},
+		// 	"iaas": map[string]interface{}{
+		// 		"regions":         p.KubeConf.Cluster.Aicp.Zone,
+		// 		"region":          p.KubeConf.Cluster.Aicp.Zone,
+		// 		"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
+		// 		"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
+		// 	},
+		// },
 	}
 	helm := HelmOptions{
 		Name:      "product-manager-server",
@@ -122,19 +122,9 @@ func (i *ImaasTask) Execute(runtime connector.Runtime) error {
 		},
 
 		"config": map[string]interface{}{
-			"domain": i.KubeConf.Cluster.Aicp.Domain,
-			"redis": map[string]interface{}{
-				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
-			},
 			"pg": map[string]interface{}{
 				"user":     common.PG_AICP,
 				"password": iaasKeys.(map[string]string)[common.PG_AICP],
-			},
-			"billing": FormatBilling(i.KubeConf.Cluster.Aicp.Billing),
-			"iaas": map[string]interface{}{
-				"zone":            i.KubeConf.Cluster.Aicp.Zone,
-				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
-				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
 			},
 		},
 	}
