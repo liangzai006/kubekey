@@ -567,10 +567,11 @@ func (m *MaasTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": m.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
-
-		"pg": map[string]interface{}{
-			"user":     common.PG_AICP,
-			"password": iaasKeys.(map[string]string)[common.PG_AICP],
+		"config": map[string]interface{}{
+			"pg": map[string]interface{}{
+				"user":     common.PG_AICP,
+				"password": iaasKeys.(map[string]string)[common.PG_AICP],
+			},
 		},
 	}
 	helm := HelmOptions{
@@ -613,10 +614,11 @@ func (o *OperationTask) Execute(runtime connector.Runtime) error {
 		"global": map[string]interface{}{
 			"offlineRepo": o.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
-
-		"pg": map[string]interface{}{
-			"user":     common.PG_AICP,
-			"password": iaasKeys.(map[string]string)[common.PG_AICP],
+		"config": map[string]interface{}{
+			"pg": map[string]interface{}{
+				"user":     common.PG_AICP,
+				"password": iaasKeys.(map[string]string)[common.PG_AICP],
+			},
 		},
 	}
 	helm := HelmOptions{

@@ -31,16 +31,15 @@ func (h *HelmIsInstalled) PreCheck(runtime connector.Runtime) (bool, error) {
 		return h.Not, err
 	}
 	get := action.NewGet(cfg)
-	helmrelease, err := get.Run(h.Name)
+	getRelease, err := get.Run(h.Name)
 	if err != nil && err != driver.ErrReleaseNotFound {
 		return h.Not, err
 	}
 
-	if helmrelease.Info.Status == release.StatusFailed {
-		return h.Not, nil
+	if getRelease != nil && getRelease.Info.Status == release.StatusDeployed {
+		return !h.Not, nil
 	}
-
-	return !h.Not, nil
+	return h.Not, nil
 }
 
 type GpuOperatorPrepare struct {

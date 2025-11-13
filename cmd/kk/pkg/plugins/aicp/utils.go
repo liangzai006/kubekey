@@ -71,12 +71,12 @@ func (h *HelmOptions) Install() error {
 	}
 
 	get := action.NewGet(cfg)
-	_, err = get.Run(h.Name)
+	getRelease, err := get.Run(h.Name)
 	if err != nil && err != driver.ErrReleaseNotFound {
 		return err
 	}
 
-	if err == driver.ErrReleaseNotFound {
+	if getRelease == nil {
 
 		i := action.NewInstall(cfg)
 		i.ReleaseName = h.Name
