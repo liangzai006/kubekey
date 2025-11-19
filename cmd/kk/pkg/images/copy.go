@@ -23,6 +23,7 @@ import (
 	"github.com/containers/image/v5/copy"
 	"github.com/containers/image/v5/signature"
 	"github.com/containers/image/v5/transports/alltransports"
+	"github.com/pkg/errors"
 )
 
 type CopyImageOptions struct {
@@ -49,6 +50,28 @@ func (c *CopyImageOptions) Copy() error {
 
 	srcContext := c.srcImage.systemContext()
 	destContext := c.destImage.systemContext()
+
+	// TODO: check the image architecture
+	srcImage, err := srcRef.NewImage(context.Background(), c.srcImage.systemContext())
+	if err != nil {
+		return err
+	}
+
+	srcImageInspect, err := srcImage.Inspect(context.Background())
+	if err != nil {
+		return err
+	}
+	if srcImageInspect == nil {
+		return errors.Errorf("image inspect is nil: %s", c.srcImage.imageName)
+	}
+	if c.srcImage.dockerImage.arch != srcImageInspect.Architecture && c.srcImage.dockerImage.os != srcImageInspect.Os {
+		if c.srcImage.dockerImage.variant == "" {
+			return nil
+		}
+		if c.srcImage.dockerImage.variant != srcImageInspect.Variant {
+			return nil
+		}
+	}
 
 	_, err = copy.Image(context.Background(), policyContext, destRef, srcRef, &copy.Options{
 		ReportWriter:       os.Stdout,
