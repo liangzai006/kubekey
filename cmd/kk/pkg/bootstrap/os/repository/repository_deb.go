@@ -18,9 +18,10 @@ package repository
 
 import (
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"strings"
 	"time"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 )
 
 type Debian struct {
@@ -88,7 +89,7 @@ func (d *Debian) Install(runtime connector.Runtime, pkg ...string) error {
 	}
 
 	str := strings.Join(pkg, " ")
-	installCmd := fmt.Sprintf("timeout 300 apt install -y %s", str)
+	installCmd := fmt.Sprintf("DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt install -y %s", str)
 	maxRetries := 5
 	for attempts := 1; attempts <= maxRetries; attempts++ {
 		if _, err := runtime.GetRunner().SudoCmd(installCmd, true); err != nil {
