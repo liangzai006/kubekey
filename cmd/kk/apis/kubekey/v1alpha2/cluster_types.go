@@ -18,6 +18,7 @@ package v1alpha2
 
 import (
 	"fmt"
+	"net"
 	"regexp"
 	"strconv"
 	"strings"
@@ -136,12 +137,13 @@ type KubeSphere struct {
 }
 
 type Aicp struct {
-	Domain  string            `yaml:"domain" json:"domain,omitempty"`
-	Zone    string            `yaml:"zone" json:"zone,omitempty"`
-	Billing bool              `yaml:"billing" json:"billing,omitempty"`
-	Hami    bool              `yaml:"hami" json:"hami,omitempty"`
-	Network bool              `yaml:"network" json:"network,omitempty"`
-	Keys    map[string]string `yaml:"keys" json:"keys,omitempty"`
+	Domain  string `yaml:"domain" json:"domain,omitempty"`
+	Zone    string `yaml:"zone" json:"zone,omitempty"`
+	Billing bool   `yaml:"billing" json:"billing,omitempty"`
+	Hami    bool   `yaml:"hami" json:"hami,omitempty"`
+	Network bool   `yaml:"network" json:"network,omitempty"`
+	// Keys    map[string]string `yaml:"keys" json:"keys,omitempty"`
+	HostIp *net.IP `yaml:"hostIp,omitempty" json:"hostIp,omitempty"`
 }
 
 // GenerateCertSANs is used to generate cert sans for cluster.

@@ -108,6 +108,8 @@ const (
 	ZFS      = "zfs"
 	Longhorn = "longhorn"
 
+	AicpKeyCfg = "aicp-key.cfg"
+
 	// Aicp
 	IAAS_AKSK                  = "IAAS_AKSK"
 	ADMIN_KEY_ID               = "ADMIN_KEY_ID"

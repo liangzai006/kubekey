@@ -17,17 +17,6 @@ func (h *DeployAicpServiceModule) Init() {
 	h.Name = "DeployAicpServiceModule"
 	h.Desc = "Deploy Aicp Service"
 
-	aicpStorageTask := &task.LocalTask{
-		Name:    "AicpStorageTask",
-		Desc:    "Deploy Aicp Storage Component",
-		Prepare: &HelmIsInstalled{Not: true, Name: "aicp-storage", Namespace: "aicp-storage"},
-		Action:  new(AicpStorageTask),
-		Rollback: &DeployFailRollBack{
-			Name:      "aicp-storage",
-			Namespace: "aicp-storage",
-		},
-	}
-
 	configServerTask := &task.LocalTask{
 		Name:    "ConfigServerTask",
 		Desc:    "Deploy Config Server Component",
@@ -283,7 +272,6 @@ func (h *DeployAicpServiceModule) Init() {
 		},
 	}
 	h.Tasks = []task.Interface{
-		aicpStorageTask,
 		certManagerTask,
 		istioTask,
 		ClusterLocalGatewayTask,

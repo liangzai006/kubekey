@@ -19,38 +19,6 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
-type AicpStorageTask struct {
-	common.KubeAction
-}
-
-func (a *AicpStorageTask) Execute(runtime connector.Runtime) error {
-	aicpStorageDir := filepath.Join(a.KubeConf.Arg.AicpWorkDir, "charts", "aicp-storage")
-
-	iaasKeys, ok := a.PipelineCache.Get(common.IAAS_AKSK)
-	if !ok {
-		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
-	}
-
-	vals := map[string]interface{}{
-		"global": map[string]interface{}{
-			"offlineRepo": a.KubeConf.Cluster.Registry.PrivateRegistry,
-		},
-		"users": map[string]interface{}{
-			"aicpName":       common.PG_AICP,
-			"aicpPassword":   iaasKeys.(map[string]string)[common.PG_AICP],
-			"yunifyName":     common.PG_YUNIFY,
-			"yunifyPassword": iaasKeys.(map[string]string)[common.PG_YUNIFY],
-		},
-	}
-	helm := HelmOptions{
-		Name:      "aicp-storage",
-		Namespace: "aicp-storage",
-		ChartPath: aicpStorageDir,
-		Values:    vals,
-	}
-	return helm.Install()
-}
-
 type ConfigServerTask struct {
 	common.KubeAction
 }

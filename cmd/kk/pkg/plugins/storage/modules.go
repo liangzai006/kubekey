@@ -106,7 +106,19 @@ func (d *DeployStorageVolumeModule) Init() {
 		},
 	}
 
+	aicpStorageTask := &task.LocalTask{
+		Name:    "AicpStorageTask",
+		Desc:    "Deploy Aicp Storage Component",
+		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "aicp-storage", Namespace: "aicp-storage"},
+		Action:  new(AicpStorageTask),
+		Rollback: &aicp.DeployFailRollBack{
+			Name:      "aicp-storage",
+			Namespace: "aicp-storage",
+		},
+	}
+
 	d.Tasks = []task.Interface{
 		zfs,
+		aicpStorageTask,
 	}
 }

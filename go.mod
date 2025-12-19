@@ -15,6 +15,7 @@ require (
 	github.com/containerd/containerd v1.6.10
 	github.com/containers/image/v5 v5.21.1
 	github.com/deckarep/golang-set v1.8.0
+	github.com/docker/docker v20.10.18+incompatible
 	github.com/estesp/manifest-tool/v2 v2.0.3
 	github.com/evanphx/json-patch v5.6.0+incompatible
 	github.com/ghodss/yaml v1.0.0
@@ -41,7 +42,6 @@ require (
 	github.com/xuri/excelize/v2 v2.8.0
 	golang.org/x/crypto v0.12.0
 	gopkg.in/yaml.v3 v3.0.1
-	gotest.tools v2.2.0+incompatible
 	helm.sh/helm/v3 v3.9.4
 	k8s.io/api v0.25.4
 	k8s.io/apiextensions-apiserver v0.25.4
@@ -105,7 +105,6 @@ require (
 	github.com/deislabs/oras v0.9.0 // indirect
 	github.com/docker/cli v20.10.17+incompatible // indirect
 	github.com/docker/distribution v2.8.1+incompatible // indirect
-	github.com/docker/docker v20.10.18+incompatible // indirect
 	github.com/docker/docker-credential-helpers v0.7.0 // indirect
 	github.com/docker/go-connections v0.4.1-0.20190612165340-fd1b1942c4d5 // indirect
 	github.com/docker/go-metrics v0.0.1 // indirect

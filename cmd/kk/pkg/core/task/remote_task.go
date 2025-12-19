@@ -321,7 +321,7 @@ func (t *RemoteTask) Default() {
 	}
 
 	if t.Retry <= 0 {
-		t.Retry = 3
+		t.Retry = 1
 	}
 
 	if t.Delay <= 0 {

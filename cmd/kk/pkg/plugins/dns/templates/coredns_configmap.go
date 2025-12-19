@@ -106,8 +106,12 @@ func GenerateDnsHosts(runtime connector.ModuleRuntime, kubeConf *common.KubeConf
 	var aiUrl, apiUrl string
 
 	if kubeConf.Cluster.ControlPlaneEndpoint.Address != "" {
-		aiUrl = fmt.Sprintf("%s %s", kubeConf.Cluster.ControlPlaneEndpoint.Address, fmt.Sprintf("ai.%s", kubeConf.Cluster.Aicp.Domain))
-		apiUrl = fmt.Sprintf("%s %s", kubeConf.Cluster.ControlPlaneEndpoint.Address, fmt.Sprintf("api.%s", kubeConf.Cluster.Aicp.Domain))
+		dnsDomainIp := kubeConf.Cluster.ControlPlaneEndpoint.Address
+		if kubeConf.Cluster.Aicp.HostIp != nil {
+			dnsDomainIp = kubeConf.Cluster.Aicp.HostIp.To4().String()
+		}
+		aiUrl = fmt.Sprintf("%s %s", dnsDomainIp, fmt.Sprintf("ai.%s", kubeConf.Cluster.Aicp.Domain))
+		apiUrl = fmt.Sprintf("%s %s", dnsDomainIp, fmt.Sprintf("api.%s", kubeConf.Cluster.Aicp.Domain))
 		if !strings.Contains(kubeConf.Cluster.DNS.DNSEtcHosts, aiUrl) {
 			kubeConf.Cluster.DNS.DNSEtcHosts = fmt.Sprintf("%s\n%s", aiUrl, kubeConf.Cluster.DNS.DNSEtcHosts)
 		}

@@ -28,6 +28,7 @@ import (
 type ClusterConfigPreCheckModule struct {
 	common.KubeModule
 	Skip bool
+	Mode string
 }
 
 func (n *ClusterConfigPreCheckModule) IsSkip() bool {
@@ -41,7 +42,7 @@ func (n *ClusterConfigPreCheckModule) Init() {
 	configCheck := &task.LocalTask{
 		Name:   "ClusterConfigPreCheck",
 		Desc:   "A config check on cluster files",
-		Action: new(ClusterConfigCheck),
+		Action: &ClusterConfigCheck{Mode: n.Mode},
 	}
 
 	n.Tasks = []task.Interface{

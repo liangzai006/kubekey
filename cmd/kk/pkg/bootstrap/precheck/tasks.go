@@ -18,10 +18,13 @@ package precheck
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/pkg/errors"
+	"gopkg.in/yaml.v3"
 	versionutil "k8s.io/apimachinery/pkg/util/version"
 	"k8s.io/klog/v2"
 
@@ -119,6 +122,7 @@ func (n *NodePreCheck) Execute(runtime connector.Runtime) error {
 type ClusterConfigCheck struct {
 	common.KubeAction
 	Skip bool
+	Mode string
 }
 
 func (c *ClusterConfigCheck) IsSkip() bool {
@@ -138,6 +142,39 @@ func (c *ClusterConfigCheck) Execute(runtime connector.Runtime) error {
 				}
 			}
 		}
+	}
+	if c.Mode == "apply" {
+
+		if c.KubeConf.Cluster.Aicp.HostIp == nil {
+			resultMap["HostIp"] = "[hostIp] filed is empty"
+		}
+
+		if _, err := os.Stat(filepath.Join(c.KubeConf.Arg.AicpWorkDir, common.AicpKeyCfg)); err != nil {
+			resultMap["Keys"] = "[keys] filed keys is empty"
+		} else {
+
+			if keys, err := os.ReadFile(filepath.Join(c.KubeConf.Arg.AicpWorkDir, common.AicpKeyCfg)); err != nil {
+				resultMap["Keys"] = "[keys] filed keys is empty"
+			} else {
+				keysMap := make(map[string]string)
+				if err := yaml.Unmarshal(keys, &keysMap); err != nil {
+					resultMap["Keys"] = "[keys] filed keys is empty"
+				}
+				keyFiled := []string{
+					common.ADMIN_KEY_ID, common.ADMIN_SECRET_KEY, common.ADMIN_SECRET_CONSOLE_KEY,
+					common.BOSS_KEY_ID, common.BOSS_SECRET_KEY, common.BOSS_SECRET_CONSOLE_KEY,
+					common.CONSOLE_KEY_ID, common.CONSOLE_SECRET_KEY, common.CONSOLE_SECRET_CONSOLE_KEY,
+				}
+
+				for _, k := range keyFiled {
+					if _, ok := keysMap[k]; !ok {
+						resultMap[k] = fmt.Sprintf("[%s] filed keys is empty", k)
+					}
+				}
+			}
+
+		}
+
 	}
 	if len(resultMap) > 0 {
 		for _, r := range resultMap {

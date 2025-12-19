@@ -517,16 +517,10 @@ func (r *AicpDirModule) Init() {
 		Parallel: true,
 		Retry:    2,
 	}
-	skipConfigureOS := &task.LocalTask{
-		Name:   "SkipConfigureOS",
-		Desc:   "Skip configure os",
-		Action: &common.StepOSModule{Step: "initOs"},
-	}
 
 	r.Tasks = []task.Interface{
 		configRootDir,
 		configDataDir,
-		skipConfigureOS,
 	}
 }
 
@@ -567,7 +561,7 @@ func (r *FreePasswdModule) Init() {
 	copyWorkerSSHKey := &task.RemoteTask{
 		Name:   "CopyWorkerSSHKey",
 		Desc:   "Copy Worker SSH key",
-		Hosts:  r.Runtime.GetHostsByRole(common.Worker),
+		Hosts:  r.Runtime.GetHostsByRole(common.K8s),
 		Action: new(CopyWorkerSSHKey),
 	}
 	execSSHKey := &task.RemoteTask{

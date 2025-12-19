@@ -17,7 +17,6 @@ import (
 	"helm.sh/helm/v3/pkg/chart/loader"
 	"helm.sh/helm/v3/pkg/chartutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/wait"
 )
 
@@ -174,15 +173,10 @@ func LoadApplicationClass(name, tempDir string) error {
 }
 
 // getStatusState 从runtime.Object中获取status.state字段
-func getStatusState(obj runtime.Object) (string, error) {
-	// 转换为unstructured对象
-	unstructuredObj, ok := obj.(*unstructured.Unstructured)
-	if !ok {
-		return "", fmt.Errorf("cannot convert to unstructured object")
-	}
+func getStatusState(obj *unstructured.Unstructured) (string, error) {
 
 	// 获取status.state字段
-	state, _, err := unstructured.NestedString(unstructuredObj.Object, "status", "state")
+	state, _, err := unstructured.NestedString(obj.Object, "status", "state")
 	if err != nil {
 		return "", err
 	}

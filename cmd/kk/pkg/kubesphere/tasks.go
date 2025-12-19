@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -33,24 +34,27 @@ import (
 	dockerclient "github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
 	"github.com/ghodss/yaml"
+	"github.com/mohae/deepcopy"
 
 	"github.com/pkg/errors"
 	yamlV3 "gopkg.in/yaml.v3"
 	"helm.sh/helm/v3/pkg/cli"
 	"helm.sh/helm/v3/pkg/kube"
-	corev1 "k8s.io/api/core/v1"
 	kubeerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 	"k8s.io/cli-runtime/pkg/resource"
-	"k8s.io/client-go/util/homedir"
 	"k8s.io/klog/v2"
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/client/kubernetes"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/common"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/logger"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/util"
+	ksTemp "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere/templates"
 	ksv2 "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere/v2"
 	ksv3 "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/kubesphere/v3"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/aicp"
@@ -471,8 +475,12 @@ func (d *DeployKsCore) Execute(runtime connector.Runtime) error {
 			"imageRegistry": d.KubeConf.Cluster.Registry.PrivateRegistry,
 		},
 		"ha": map[string]interface{}{
-			"enabled":  true,
-			"password": keys.(map[string]string)[common.REDIS_PASSWORD],
+			"enabled": true,
+			"cache": map[string]interface{}{
+				"options": map[string]interface{}{
+					"password": keys.(map[string]string)[common.REDIS_PASSWORD],
+				},
+			},
 		},
 		"aicp": map[string]interface{}{
 			"domain": d.KubeConf.Cluster.Aicp.Domain,
@@ -589,22 +597,22 @@ type ApplyInstallPlanTask struct {
 
 // 定义优先级顺序
 var resourcePriority = map[string]int{
-	"kubesphere-logging-system":  1,
+	// "kubesphere-logging-system":  1,
+	"vector":                     1,
 	"opensearch-internal-secret": 2,
-	"opensearch":                 2,
-	"vector":                     3,
-	"whizard-telemetry":          5,
-	"whizard-monitoring":         6,
-	"whizard-alerting":           7,
-	"whizard-notification":       8,
+	"opensearch":                 3,
+	"whizard-telemetry":          4,
+	"whizard-monitoring":         5,
+	"whizard-alerting":           6,
+	"whizard-notification":       7,
 }
 var waitResource = map[string]int{
-	"opensearch":           2,
-	"vector":               3,
-	"whizard-telemetry":    5,
-	"whizard-monitoring":   6,
-	"whizard-alerting":     7,
-	"whizard-notification": 8,
+	"opensearch":           1,
+	"vector":               2,
+	"whizard-telemetry":    3,
+	"whizard-monitoring":   4,
+	"whizard-alerting":     5,
+	"whizard-notification": 6,
 }
 
 func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
@@ -681,7 +689,7 @@ func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
 				if err != nil {
 					return false, err
 				}
-				state, err := getStatusState(resource)
+				state, err := getStatusState(resource.(*unstructured.Unstructured))
 				if err != nil {
 					return false, err
 				}
@@ -756,53 +764,64 @@ type GenerateAicpKeysTask struct {
 }
 
 func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
-	cmName := "aicp-key"
-	k8sClient, err := kubernetes.NewClient(filepath.Join(homedir.HomeDir(), ".kube", "config"))
-	if err != nil {
-		return err
-	}
+	cmName := filepath.Join(i.KubeConf.Arg.AicpWorkDir, common.AicpKeyCfg)
+	klog.Infof("Starting GenerateAicpKeysTask, config file: %s", cmName)
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	keys := i.KubeConf.Cluster.Aicp.Keys
-	remoteGet := false
-	// if keys is not set, get from configmap
-	if len(keys) == 0 {
-		keysConfig, err := k8sClient.CoreV1().ConfigMaps("kube-system").Get(ctx, cmName, metav1.GetOptions{})
-		if err == nil && len(keysConfig.Data) != 0 {
-			keys = keysConfig.Data
-			remoteGet = true
-		} else {
+	keys := make(map[string]string)
+
+	// 先尝试读取现有文件
+	if fileData, err := os.ReadFile(cmName); err == nil && len(fileData) > 0 {
+		klog.Infof("Found existing key file, size: %d bytes", len(fileData))
+		if err := yamlV3.Unmarshal(fileData, &keys); err != nil {
+			klog.Warningf("Failed to parse existing key file: %v, will regenerate", err)
 			keys = make(map[string]string)
+		} else {
+			klog.Infof("Successfully loaded %d keys from file", len(keys))
 		}
-		if err != nil && !kubeerrors.IsNotFound(err) {
-			return err
+	} else {
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("failed to read key file: %w", err)
 		}
+		klog.Infof("Key file does not exist or is empty, will create new keys")
 	}
 
 	// if keys is already generated, return
 	if len(keys) == 14 {
+		klog.Infof("Checking if all 14 keys are valid...")
 		emptyValue := false
-		for _, v := range keys {
+		for k, v := range keys {
 			if v == "" {
+				klog.Warningf("Key %s is empty", k)
 				emptyValue = true
 				break
 			}
 		}
 		if !emptyValue {
+			klog.Infof("All 14 keys are valid, using existing keys")
 			i.PipelineCache.Set(common.IAAS_AKSK, keys)
 			return nil
 		}
+		klog.Infof("Some keys are empty, regenerating...")
+	} else {
+		klog.Infof("Only found %d keys, need 14 keys, will generate missing ones", len(keys))
 	}
+
+	klog.Infof("Starting to generate/update keys...")
 	dockerClient, err := dockerclient.NewClientWithOpts(dockerclient.FromEnv)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create docker client: %w", err)
 	}
+
 	pullImage := fmt.Sprintf("%s/aicp/encode-keys:v1", i.KubeConf.Cluster.Registry.PrivateRegistry)
+	klog.Infof("Pulling docker image: %s", pullImage)
 	err = pullDockerImage(ctx, dockerClient, pullImage)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to pull docker image: %w", err)
 	}
+	klog.Infof("Docker image pulled successfully")
 
 	keyFields := []string{
 		common.ADMIN_KEY_ID,
@@ -816,9 +835,13 @@ func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
 		common.PG_YUNIFY,
 	}
 
+	klog.Infof("Generating basic keys...")
 	for _, k := range keyFields {
 		if _, ok := keys[k]; !ok {
 			keys[k] = generateRandomString(k, keys)
+			klog.Infof("Generated key: %s", k)
+		} else {
+			klog.Infof("Key %s already exists, skipping", k)
 		}
 	}
 
@@ -830,40 +853,37 @@ func (i *GenerateAicpKeysTask) Execute(runtime connector.Runtime) error {
 		common.PG_YUNIFY_ENCODE:           common.PG_YUNIFY,
 	}
 
+	klog.Infof("Encoding keys using Docker...")
 	for k, v := range encodeFields {
 		key, ok := keys[v]
 		if !ok && key == "" {
 			keys[v] = generateRandomString(k, keys)
+			klog.Infof("Generated missing key for encoding: %s", v)
 		}
+		klog.Infof("Encoding key %s from source %s", k, v)
 		dockerGenKey, err := runDockerAction(ctx, dockerClient, pullImage, []string{key})
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to encode key %s: %w", k, err)
 		}
-		klog.Infof("generate encode string for %s: %s", k, dockerGenKey)
+		klog.Infof("Successfully encoded key %s", k)
 		keys[k] = dockerGenKey
 	}
 
-	if remoteGet {
-		_, err = k8sClient.CoreV1().ConfigMaps("kube-system").Update(ctx, &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: cmName,
-			},
-			Data: keys,
-		}, metav1.UpdateOptions{})
-	} else {
-		_, err = k8sClient.CoreV1().ConfigMaps("kube-system").Create(ctx, &corev1.ConfigMap{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: cmName,
-			},
-			Data: keys,
-		}, metav1.CreateOptions{})
+	// 写入文件
+	klog.Infof("Writing keys to file: %s", cmName)
+	yamlData, err := yamlV3.Marshal(keys)
+	if err != nil {
+		return fmt.Errorf("failed to marshal keys to YAML: %w", err)
 	}
 
+	err = os.WriteFile(cmName, yamlData, 0644)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to write keys to file: %w", err)
 	}
+	klog.Infof("Successfully wrote %d keys to file", len(keys))
 
 	i.PipelineCache.Set(common.IAAS_AKSK, keys)
+	klog.Infof("Keys saved to pipeline cache")
 
 	return nil
 }
@@ -934,4 +954,331 @@ func generateRandomString(keysTag string, keys map[string]string) string {
 	klog.Infof("generate random string for %s: %s", keysTag, key_id)
 	return key_id
 
+}
+
+type ApplyMemberClusterTask struct {
+	common.KubeAction
+}
+
+func (a *ApplyMemberClusterTask) Execute(runtime connector.Runtime) error {
+	template := ksTemp.Cluster
+	configTemplate := ksTemp.Config
+
+	configTemplateStr, err := util.Render(configTemplate, map[string]interface{}{
+		"ImageRegistry": a.KubeConf.Cluster.Registry.PrivateRegistry,
+	})
+	if err != nil {
+		return err
+	}
+
+	configTemplateStrBase64 := base64.StdEncoding.EncodeToString([]byte(configTemplateStr))
+	data := util.Data{
+		"ClusterName": a.KubeConf.ClusterName,
+		"Config":      configTemplateStrBase64,
+		"KubeConfig":  ksTemp.GetKubeConfig(a.KubeConf),
+	}
+	rendered, err := util.Render(template, data)
+	if err != nil {
+		return err
+	}
+
+	hostKubeConfig := a.KubeConf.Arg.KubeConfig
+
+	cli := cli.New()
+	cli.KubeConfig = hostKubeConfig
+	kb := kube.New(cli.RESTClientGetter())
+
+	resources, err := kb.Build(strings.NewReader(rendered), false)
+	if err != nil {
+		return err
+	}
+	for _, r := range resources {
+		help := resource.NewHelper(r.Client, r.Mapping).WithFieldManager("apply-member-cluster")
+		_, err = help.Get(r.Namespace, r.Name)
+		if err == nil {
+			continue
+		}
+
+		_, err = help.Create(r.Namespace, false, r.Object)
+		if err != nil {
+			return err
+		}
+
+		// 等待 Cluster 就绪
+		err = WaitForResource(func() (bool, error) {
+			cluster, err := help.Get(r.Namespace, r.Name)
+			if err != nil {
+				return false, err
+			}
+
+			// 检查 status.conditions
+			status, ok := cluster.(*unstructured.Unstructured).Object["status"].(map[string]interface{})
+			if !ok {
+				klog.Infof("Cluster %s: status not found yet", r.Name)
+				return false, nil
+			}
+
+			conditions, ok := status["conditions"].([]interface{})
+			if !ok {
+				klog.Infof("Cluster %s: conditions not found yet", r.Name)
+				return false, nil
+			}
+
+			// 检查 KSCoreReady 和 Ready 两个 condition
+			ksCoreReady := false
+			clusterReady := false
+
+			for _, cond := range conditions {
+				condition := cond.(map[string]interface{})
+				condType, _ := condition["type"].(string)
+				condStatus, _ := condition["status"].(string)
+
+				if condType == "KSCoreReady" && condStatus == "True" {
+					ksCoreReady = true
+				}
+				if condType == "Ready" && condStatus == "True" {
+					clusterReady = true
+				}
+			}
+
+			klog.Infof("Cluster %s status: KSCoreReady=%v, Ready=%v", r.Name, ksCoreReady, clusterReady)
+
+			if ksCoreReady && clusterReady {
+				klog.Infof("Cluster %s is ready!", r.Name)
+				return true, nil
+			}
+
+			return false, nil
+		}, 500*time.Second)
+
+		if err != nil {
+			return fmt.Errorf("failed to wait for Cluster %s to be ready: %w", r.Name, err)
+		}
+
+	}
+	return nil
+}
+
+type PatchInstallPlanTask struct {
+	common.KubeAction
+}
+
+func (a *PatchInstallPlanTask) Execute(runtime connector.Runtime) error {
+	cli := cli.New()
+	cli.KubeConfig = a.KubeConf.Arg.KubeConfig
+	kb := kube.New(cli.RESTClientGetter())
+	dynamicClient, err := kb.Factory.DynamicClient()
+	if err != nil {
+		return err
+	}
+
+	installPlanResource := dynamicClient.Resource(schema.GroupVersionResource{
+		Group:    "kubesphere.io",
+		Version:  "v1alpha1",
+		Resource: "installplans",
+	})
+
+	memberClusterName := a.KubeConf.ClusterName
+
+	installPlanNames := []string{
+		"opensearch",
+		"vector",
+		// "whizard-telemetry",
+		"whizard-monitoring",
+		"whizard-alerting",
+		"whizard-logging",
+		"whizard-telemetry-ruler",
+		"whizard-events",
+		"whizard-auditing",
+		"aicp",
+	}
+
+	for _, planName := range installPlanNames {
+
+		plan, err := installPlanResource.Get(context.Background(), planName, metav1.GetOptions{})
+		if err != nil {
+			if kubeerrors.IsNotFound(err) {
+				klog.Warningf("InstallPlan %s not found, skipping", planName)
+				continue
+			}
+			return err
+		}
+
+		clusters := []interface{}{}
+		if spec, ok := plan.Object["spec"].(map[string]interface{}); ok {
+			if clusterScheduling, ok := spec["clusterScheduling"].(map[string]interface{}); ok {
+				if placement, ok := clusterScheduling["placement"].(map[string]interface{}); ok {
+					if existingClusters, ok := placement["clusters"].([]interface{}); ok {
+						clusters = existingClusters
+					}
+				}
+			}
+		}
+
+		memberExists := false
+		for _, cluster := range clusters {
+			if clusterName, ok := cluster.(string); ok && clusterName == memberClusterName {
+				memberExists = true
+				break
+			}
+		}
+
+		if !memberExists {
+
+			patchData := []map[string]interface{}{
+				{
+					"op":    "add",
+					"path":  "/spec/clusterScheduling/placement/clusters/-",
+					"value": memberClusterName,
+				},
+			}
+
+			patchBytes, err := json.Marshal(patchData)
+			if err != nil {
+				return err
+			}
+
+			_, err = installPlanResource.Patch(
+				context.Background(),
+				planName,
+				types.JSONPatchType,
+				patchBytes,
+				metav1.PatchOptions{},
+			)
+			if err != nil {
+				return err
+			}
+			klog.Infof("Added member cluster %s to InstallPlan %s", memberClusterName, planName)
+
+			err = WaitForResource(func() (bool, error) {
+				plan, err := installPlanResource.Get(context.Background(), planName, metav1.GetOptions{})
+				if err != nil {
+					return false, err
+				}
+				state, err := getStatusState(plan)
+				if err != nil {
+					return false, err
+				}
+				klog.Infof("wait for resource complete. resource: %s, state: %s", planName, state)
+				if state == "Installed" {
+					return true, nil
+				}
+				return false, nil
+			}, 500*time.Second)
+			if err != nil {
+				return err
+			}
+
+		} else {
+			klog.Infof("Member cluster %s already exists in InstallPlan %s", memberClusterName, planName)
+		}
+	}
+
+	telemetryPlan, err := installPlanResource.Get(context.Background(), "whizard-telemetry", metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	var configStr string
+	if spec, ok := telemetryPlan.Object["spec"].(map[string]interface{}); ok {
+		if config, ok := spec["config"].(string); ok {
+			configStr = config
+		}
+	}
+
+	if configStr == "" {
+		return fmt.Errorf("InstallPlan whizard-telemetry has no config")
+	}
+
+	configMap := make(map[string]interface{})
+	err = yaml.Unmarshal([]byte(configStr), &configMap)
+	if err != nil {
+		return fmt.Errorf("failed to parse config YAML: %w", err)
+	}
+
+	newEndpoint := fmt.Sprintf("https://%s:30920", a.KubeConf.Cluster.ControlPlaneEndpoint.Address)
+	if telemetryConfig, ok := configMap["whizard-telemetry"].(map[string]interface{}); ok {
+		if config, ok := telemetryConfig["config"].(map[string]interface{}); ok {
+
+			if auditingConfig, ok := config["auditing"].(map[string]interface{}); ok {
+				if servers, ok := auditingConfig["servers"].([]interface{}); ok && len(servers) > 0 {
+
+					originalServer := servers[0].(map[string]interface{})
+
+					newServer := deepcopy.Copy(originalServer).(map[string]interface{})
+
+					if elasticsearch, ok := newServer["elasticsearch"].(map[string]interface{}); ok {
+						elasticsearch["endpoints"] = []interface{}{newEndpoint}
+					}
+
+					auditingConfig["servers"] = append(servers, newServer)
+					klog.Infof("Added new server to auditing.servers")
+				}
+			}
+
+			if eventsConfig, ok := config["events"].(map[string]interface{}); ok {
+				if servers, ok := eventsConfig["servers"].([]interface{}); ok && len(servers) > 0 {
+
+					originalServer := servers[0].(map[string]interface{})
+
+					newServer := deepcopy.Copy(originalServer).(map[string]interface{})
+
+					if elasticsearch, ok := newServer["elasticsearch"].(map[string]interface{}); ok {
+						elasticsearch["endpoints"] = []interface{}{newEndpoint}
+					}
+					eventsConfig["servers"] = append(servers, newServer)
+					klog.Infof("Added new server to events.servers")
+				}
+			}
+
+			if loggingConfig, ok := config["logging"].(map[string]interface{}); ok {
+				if servers, ok := loggingConfig["servers"].([]interface{}); ok && len(servers) > 0 {
+
+					originalServer := servers[0].(map[string]interface{})
+
+					newServer := deepcopy.Copy(originalServer).(map[string]interface{})
+
+					if elasticsearch, ok := newServer["elasticsearch"].(map[string]interface{}); ok {
+						elasticsearch["endpoints"] = []interface{}{newEndpoint}
+					}
+					loggingConfig["servers"] = append(servers, newServer)
+					klog.Infof("Added new server to logging.servers")
+				}
+			}
+		}
+	}
+
+	newConfigBytes, err := yaml.Marshal(configMap)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config map: %w", err)
+	}
+	newConfigStr := string(newConfigBytes)
+
+	patchData := []map[string]interface{}{
+		{
+			"op":    "replace",
+			"path":  "/spec/config",
+			"value": newConfigStr,
+		},
+	}
+
+	patchBytes, err := json.Marshal(patchData)
+	if err != nil {
+		return fmt.Errorf("failed to marshal patch data: %w", err)
+	}
+
+	_, err = installPlanResource.Patch(
+		context.Background(),
+		"whizard-telemetry",
+		types.JSONPatchType,
+		patchBytes,
+		metav1.PatchOptions{},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to patch InstallPlan: %w", err)
+	}
+
+	klog.Infof("Successfully updated whizard-telemetry InstallPlan with new servers and endpoints")
+
+	return nil
 }

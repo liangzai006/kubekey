@@ -311,3 +311,39 @@ func (d *DeployKsCoreModule) Init() {
 		applyPrometheusResource,
 	}
 }
+
+type DeployMultiClusterModule struct {
+	common.KubeModule
+	Skip bool
+}
+
+func (d *DeployMultiClusterModule) IsSkip() bool {
+	return d.Skip
+}
+
+func (d *DeployMultiClusterModule) Init() {
+	d.Name = "DeployMultiClusterModule"
+	d.Desc = "Deploy MultiCluster"
+
+	generateKeys := &task.LocalTask{
+		Name:   "Generate KeysTask",
+		Desc:   "Generate Keys",
+		Action: new(GenerateAicpKeysTask),
+	}
+	deployMultiCluster := &task.LocalTask{
+		Name:   "DeployMultiCluster",
+		Desc:   "Deploy MultiCluster",
+		Action: new(ApplyMemberClusterTask),
+	}
+	patchInstallPlan := &task.LocalTask{
+		Name:   "PatchInstallPlan",
+		Desc:   "Patch Install Plan",
+		Action: new(PatchInstallPlanTask),
+	}
+
+	d.Tasks = []task.Interface{
+		generateKeys,
+		deployMultiCluster,
+		patchInstallPlan,
+	}
+}

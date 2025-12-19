@@ -43,5 +43,6 @@ func NewCmdCoresHub() *cobra.Command {
 	o.CommonOptions.AddCommonFlag(cmd)
 
 	cmd.AddCommand(NewCmdDeploy())
+	cmd.AddCommand(NewCmdApply())
 	return cmd
 }
