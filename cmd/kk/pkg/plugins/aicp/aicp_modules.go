@@ -7,6 +7,7 @@ import (
 
 type DeployAicpServiceModule struct {
 	common.KubeModule
+	IsMember bool
 }
 
 func (h *DeployAicpServiceModule) IsSkip() bool {
@@ -21,7 +22,7 @@ func (h *DeployAicpServiceModule) Init() {
 		Name:    "ConfigServerTask",
 		Desc:    "Deploy Config Server Component",
 		Prepare: &HelmIsInstalled{Not: true, Name: "config-server", Namespace: "aicp-system"},
-		Action:  new(ConfigServerTask),
+		Action:  &ConfigServerTask{member: h.IsMember},
 		Rollback: &DeployFailRollBack{
 			Name:      "config-server",
 			Namespace: "aicp-system",

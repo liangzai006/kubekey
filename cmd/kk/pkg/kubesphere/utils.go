@@ -196,7 +196,7 @@ func getStatusState(obj *unstructured.Unstructured) (bool, error) {
 		if err != nil {
 			return false, err
 		}
-		klog.Infof("wait  for resource complete. cluster: %s, resource: %s, state: %s", cluster, obj.GetName(), obj.GetNamespace(), state)
+		klog.Infof("wait  for resource complete. cluster: %s, resource: %s, state: %s", cluster, obj.GetName(), state)
 		if state == "Installed" {
 			ready = append(ready, cluster)
 		}

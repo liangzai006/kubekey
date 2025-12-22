@@ -103,7 +103,7 @@ func NewApplyPipeline(runtime *common.KubeRuntime) error {
 		&secret.GenerateKeysModule{},
 		&storage.DeployStorageVolumeModule{},
 		&kubesphere.DeployMultiClusterModule{},
-		&aicp.DeployAicpServiceModule{},
+		&aicp.DeployAicpServiceModule{IsMember: true},
 		&aicp.DeployOptionalModules{},
 	}
 

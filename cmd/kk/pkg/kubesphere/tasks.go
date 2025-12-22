@@ -1026,6 +1026,7 @@ func (p *PatchInstallPlanTask) Execute(runtime connector.Runtime) error {
 
 					if elasticsearch, ok := newServer["elasticsearch"].(map[string]interface{}); ok {
 						elasticsearch["endpoints"] = []interface{}{newEndpoint}
+						elasticsearch["cluster"] = []string{memberClusterName}
 					}
 
 					auditingConfig["servers"] = append(servers, newServer)
@@ -1042,6 +1043,7 @@ func (p *PatchInstallPlanTask) Execute(runtime connector.Runtime) error {
 
 					if elasticsearch, ok := newServer["elasticsearch"].(map[string]interface{}); ok {
 						elasticsearch["endpoints"] = []interface{}{newEndpoint}
+						elasticsearch["cluster"] = []string{memberClusterName}
 					}
 					eventsConfig["servers"] = append(servers, newServer)
 					klog.Infof("Added new server to events.servers")
@@ -1057,6 +1059,7 @@ func (p *PatchInstallPlanTask) Execute(runtime connector.Runtime) error {
 
 					if elasticsearch, ok := newServer["elasticsearch"].(map[string]interface{}); ok {
 						elasticsearch["endpoints"] = []interface{}{newEndpoint}
+						elasticsearch["cluster"] = []string{memberClusterName}
 					}
 					loggingConfig["servers"] = append(servers, newServer)
 					klog.Infof("Added new server to logging.servers")

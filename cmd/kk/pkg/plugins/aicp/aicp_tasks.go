@@ -21,6 +21,7 @@ import (
 
 type ConfigServerTask struct {
 	common.KubeAction
+	member bool
 }
 
 func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
@@ -40,6 +41,20 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 	if auth.PlainHTTP {
 		protocol = "http"
 	}
+	clusterName := "host"
+	if c.member {
+		clusterName = c.KubeConf.ClusterName
+	}
+	ks := map[string]string{
+		"host": "ks-console.kubesphere-system.svc",
+		"port": "80",
+	}
+	if c.member {
+		ks = map[string]string{
+			"host": c.KubeConf.Cluster.Aicp.HostIp.To4().String(),
+			"port": "30880",
+		}
+	}
 
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
@@ -50,9 +65,11 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 			"password": iaasKeys.(map[string]string)[common.PG_AICP],
 		},
 		"config": map[string]interface{}{
-			"domain":  c.KubeConf.Cluster.Aicp.Domain,
-			"sshHost": c.KubeConf.Cluster.ControlPlaneEndpoint.Address,
-			"billing": strconv.FormatBool(c.KubeConf.Cluster.Aicp.Billing),
+			"domain":      c.KubeConf.Cluster.Aicp.Domain,
+			"sshHost":     c.KubeConf.Cluster.ControlPlaneEndpoint.Address,
+			"clusterName": clusterName,
+			"billing":     strconv.FormatBool(c.KubeConf.Cluster.Aicp.Billing),
+			"ks":          ks,
 			"redis": map[string]interface{}{
 				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
 			},
