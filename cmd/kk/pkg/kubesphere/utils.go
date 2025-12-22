@@ -18,6 +18,7 @@ import (
 	"helm.sh/helm/v3/pkg/chartutil"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/util/wait"
+	"k8s.io/klog/v2"
 )
 
 func Load(path string) (*kubekeyapiv1alpha2.ExtensionKsbuilder, error) {
@@ -172,16 +173,36 @@ func LoadApplicationClass(name, tempDir string) error {
 	return os.WriteFile(filePath+"/templates/applicationclass.yaml", b.Bytes(), 0644)
 }
 
-// getStatusState 从runtime.Object中获取status.state字段
-func getStatusState(obj *unstructured.Unstructured) (string, error) {
+func getStatusState(obj *unstructured.Unstructured) (bool, error) {
 
-	// 获取status.state字段
-	state, _, err := unstructured.NestedString(obj.Object, "status", "state")
+	clusters, ok, err := unstructured.NestedStringSlice(obj.Object, "spec", "clusterScheduling", "placement", "clusters")
 	if err != nil {
-		return "", err
+		return false, err
+	}
+	if !ok {
+		// 获取status.state字段
+		state, _, err := unstructured.NestedString(obj.Object, "status", "state")
+		if err != nil {
+			return false, err
+		}
+
+		klog.Infof("wait for resource complete. resource: %s, state: %s", obj.GetName(), state)
+		return state == "Installed", nil
 	}
 
-	return state, nil
+	var ready []string
+	for _, cluster := range clusters {
+		state, _, err := unstructured.NestedString(obj.Object, "status", "clusterSchedulingStatuses", cluster, "state")
+		if err != nil {
+			return false, err
+		}
+		klog.Infof("wait  for resource complete. cluster: %s, resource: %s, state: %s", cluster, obj.GetName(), obj.GetNamespace(), state)
+		if state == "Installed" {
+			ready = append(ready, cluster)
+		}
+	}
+
+	return len(ready) == len(clusters), nil
 }
 
 func WaitForResource(fn func() (bool, error), timeout time.Duration) error {

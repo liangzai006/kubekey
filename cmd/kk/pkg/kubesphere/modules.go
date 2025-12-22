@@ -259,12 +259,6 @@ func (d *DeployKsCoreModule) Init() {
 	d.Name = "DeployKubeSphereModule"
 	d.Desc = "Deploy KubeSphere"
 
-	generateKeys := &task.LocalTask{
-		Name:   "Generate KeysTask",
-		Desc:   "Generate Keys",
-		Action: new(GenerateAicpKeysTask),
-	}
-
 	DeployKsCore := &task.LocalTask{
 		Name:    "DeployKubeSphere",
 		Desc:    "Deploy KubeSphere",
@@ -303,7 +297,6 @@ func (d *DeployKsCoreModule) Init() {
 	}
 
 	d.Tasks = []task.Interface{
-		generateKeys,
 		DeployKsCore,
 		PushKseExtension,
 		pushAicp,
@@ -325,16 +318,18 @@ func (d *DeployMultiClusterModule) Init() {
 	d.Name = "DeployMultiClusterModule"
 	d.Desc = "Deploy MultiCluster"
 
-	generateKeys := &task.LocalTask{
-		Name:   "Generate KeysTask",
-		Desc:   "Generate Keys",
-		Action: new(GenerateAicpKeysTask),
-	}
 	deployMultiCluster := &task.LocalTask{
 		Name:   "DeployMultiCluster",
 		Desc:   "Deploy MultiCluster",
 		Action: new(ApplyMemberClusterTask),
 	}
+
+	prePatchInstallPlan := &task.LocalTask{
+		Name:   "PrePatchInstallPlan",
+		Desc:   "PrePatch Install Plan",
+		Action: new(PrePatchInstallPlanTask),
+	}
+
 	patchInstallPlan := &task.LocalTask{
 		Name:   "PatchInstallPlan",
 		Desc:   "Patch Install Plan",
@@ -342,8 +337,8 @@ func (d *DeployMultiClusterModule) Init() {
 	}
 
 	d.Tasks = []task.Interface{
-		generateKeys,
 		deployMultiCluster,
+		prePatchInstallPlan,
 		patchInstallPlan,
 	}
 }

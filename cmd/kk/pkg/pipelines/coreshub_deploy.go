@@ -43,6 +43,7 @@ import (
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/aicp"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/dns"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/network"
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/secret"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/plugins/storage"
 	reg "github.com/kubesphere/kubekey/v3/cmd/kk/pkg/registry"
 	"github.com/modood/table"
@@ -101,6 +102,7 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		&customscripts.CustomScriptsModule{Phase: "PostInstall", Scripts: runtime.Cluster.System.PostInstall},
 
 		// deploy storage volume zfs
+		&secret.GenerateKeysModule{},
 		&storage.DeployStorageVolumeModule{},
 		&kubesphere.DeployKsCoreModule{},
 		&aicp.DeployAicpServiceModule{},
