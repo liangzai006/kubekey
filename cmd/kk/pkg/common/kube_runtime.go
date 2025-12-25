@@ -23,7 +23,6 @@ import (
 
 	kubekeyapiv1alpha2 "github.com/kubesphere/kubekey/v3/cmd/kk/apis/kubekey/v1alpha2"
 	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/connector"
-	"k8s.io/klog/v2"
 )
 
 type KubeRuntime struct {
@@ -118,13 +117,4 @@ func (k *KubeRuntime) IsStepSkip(skip string) bool {
 	}
 	_, err := os.Stat(path.Join(k.GetWorkDir(), "step", skip))
 	return err == nil
-}
-func (k *KubeRuntime) SetStepSkip(skip string) {
-	filePath := path.Join(k.GetWorkDir(), "step", skip)
-	o, err := os.Create(filePath)
-	if err != nil {
-		klog.Errorf("[ERRO]: Failed to create step skip file: %s\n", err)
-		return
-	}
-	defer o.Close()
 }

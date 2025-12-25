@@ -2,6 +2,7 @@ package aicp
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -75,24 +76,26 @@ func (h *HelmOptions) Install() error {
 	if err != nil && err != driver.ErrReleaseNotFound {
 		return err
 	}
-
 	if getRelease == nil {
-
+		file, err := os.Create(fmt.Sprintf("%s-%s.yaml", h.Name, h.Namespace))
+		if err != nil {
+			return err
+		}
+		defer file.Close()
 		i := action.NewInstall(cfg)
 		i.ReleaseName = h.Name
 		i.Namespace = h.Namespace
 		i.CreateNamespace = true
 		i.Timeout = timeout
-		i.Wait = true
-		_, err = i.RunWithContext(ctx, chart, h.Values)
+		rel, err := i.RunWithContext(ctx, chart, h.Values)
 		if err != nil {
 			klog.Errorf("install %s failed, %s\n", h.Name, err)
 			return err
 		}
+		file.WriteString(rel.Manifest)
 	} else {
 		u := action.NewUpgrade(cfg)
 		u.Namespace = h.Namespace
-		u.Wait = true
 		u.Timeout = timeout
 		_, err = u.RunWithContext(ctx, h.Name, chart, h.Values)
 		if err != nil {
@@ -119,7 +122,6 @@ func (h *HelmOptions) Templates() (*release.Release, error) {
 	i := action.NewInstall(cfg)
 	i.ReleaseName = h.Name
 	i.Namespace = h.Namespace
-	i.Wait = true
 	i.DryRun = true
 
 	i.Replace = true // Skip the name check
@@ -140,15 +142,12 @@ func (h *HelmOptions) Uninstall() error {
 	if err != nil {
 		return err
 	}
-
 	i := action.NewUninstall(cfg)
-
 	_, err = i.Run(h.Name)
 
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

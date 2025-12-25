@@ -45,15 +45,13 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 	if c.member {
 		clusterName = c.KubeConf.ClusterName
 	}
-	ks := map[string]string{
+	ks := map[string]interface{}{
 		"host": "ks-console.kubesphere-system.svc",
 		"port": "80",
 	}
 	if c.member {
-		ks = map[string]string{
-			"host": c.KubeConf.Cluster.Aicp.HostIp.To4().String(),
-			"port": "30880",
-		}
+		ks["host"] = c.KubeConf.Cluster.Aicp.HostIp.To4().String()
+		ks["port"] = "30880"
 	}
 
 	vals := map[string]interface{}{
@@ -65,7 +63,8 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 			"password": iaasKeys.(map[string]string)[common.PG_AICP],
 		},
 		"config": map[string]interface{}{
-			"domain":      c.KubeConf.Cluster.Aicp.Domain,
+			"domain":      c.KubeConf.Cluster.Aicp.DomainConfig.Domain,
+			"aiPrefix":    c.KubeConf.Cluster.Aicp.DomainConfig.Ai,
 			"sshHost":     c.KubeConf.Cluster.ControlPlaneEndpoint.Address,
 			"clusterName": clusterName,
 			"billing":     strconv.FormatBool(c.KubeConf.Cluster.Aicp.Billing),
@@ -74,6 +73,8 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 				"password": iaasKeys.(map[string]string)[common.REDIS_PASSWORD],
 			},
 			"iaas": map[string]interface{}{
+				"hostPrefix":      c.KubeConf.Cluster.Aicp.DomainConfig.Api,
+				"protocol":        c.KubeConf.Cluster.Aicp.DomainConfig.Protocol,
 				"zone":            c.KubeConf.Cluster.Aicp.Zone,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
 				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],

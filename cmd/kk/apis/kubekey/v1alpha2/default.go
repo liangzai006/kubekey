@@ -105,8 +105,16 @@ const (
 	Kubevip            = "kube-vip"
 	DefaultKubeVipMode = "ARP"
 
-	DefaultAicpDomain = "coreshub-local.com"
-	DefaultAicpZone   = "coreshub"
+	DefaultAicpDomain          = "coreshub-local.com"
+	DefaultAicpZone            = "coreshub"
+	DefaultAicpDomainProtocol  = "http"
+	DefaultAicpDomainAi        = "ai"
+	DefaultAicpDomainApi       = "api"
+	DefaultAicpDomainConsole   = "console"
+	DefaultAicpDomainBoss      = "boss"
+	DefaultAicpDomainCadmin    = "cadmin"
+	DefaultAicpDomainDocs      = "docs"
+	DefaultAicpDomainCertPaths = "certs"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*KubeHost) {
@@ -366,11 +374,32 @@ func SetDefaultEtcdCfg(cfg *ClusterSpec) EtcdCluster {
 }
 
 func SetDefaultAicpCfg(cfg *ClusterSpec) Aicp {
-	if cfg.Aicp.Domain == "" {
-		cfg.Aicp.Domain = DefaultAicpDomain
-	}
 	if cfg.Aicp.Zone == "" {
 		cfg.Aicp.Zone = DefaultAicpZone
+	}
+	if cfg.Aicp.DomainConfig.Protocol == "" {
+		cfg.Aicp.DomainConfig.Protocol = DefaultAicpDomainProtocol
+	}
+	if cfg.Aicp.DomainConfig.Domain == "" {
+		cfg.Aicp.DomainConfig.Domain = DefaultAicpDomain
+	}
+	if cfg.Aicp.DomainConfig.Ai == "" {
+		cfg.Aicp.DomainConfig.Ai = DefaultAicpDomainAi
+	}
+	if cfg.Aicp.DomainConfig.Api == "" {
+		cfg.Aicp.DomainConfig.Api = DefaultAicpDomainApi
+	}
+	if cfg.Aicp.DomainConfig.Console == "" {
+		cfg.Aicp.DomainConfig.Console = DefaultAicpDomainConsole
+	}
+	if cfg.Aicp.DomainConfig.Boss == "" {
+		cfg.Aicp.DomainConfig.Boss = DefaultAicpDomainBoss
+	}
+	if cfg.Aicp.DomainConfig.Cadmin == "" {
+		cfg.Aicp.DomainConfig.Cadmin = DefaultAicpDomainCadmin
+	}
+	if cfg.Aicp.DomainConfig.Docs == "" {
+		cfg.Aicp.DomainConfig.Docs = DefaultAicpDomainDocs
 	}
 	return cfg.Aicp
 }

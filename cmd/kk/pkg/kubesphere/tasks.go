@@ -477,7 +477,7 @@ func (d *DeployKsCore) Execute(runtime connector.Runtime) error {
 			},
 		},
 		"aicp": map[string]interface{}{
-			"domain": d.KubeConf.Cluster.Aicp.Domain,
+			"domain": d.KubeConf.Cluster.Aicp.DomainConfig.Domain,
 		},
 	}
 

@@ -49,7 +49,7 @@ import (
 	"github.com/modood/table"
 )
 
-func NewDeployPipeline(runtime *common.KubeRuntime) error {
+func newDeployPipeline(runtime *common.KubeRuntime) error {
 	noArtifact := runtime.Arg.Artifact == ""
 	skipPushImages := noArtifact || (!noArtifact && runtime.Cluster.Registry.PrivateRegistry == "")
 
@@ -119,7 +119,7 @@ func NewDeployPipeline(runtime *common.KubeRuntime) error {
 		return err
 	}
 
-	PrintDeployInfo(runtime)
+	printDeployInfo(runtime)
 
 	return nil
 }
@@ -144,7 +144,7 @@ func CoresHubDeploy(args common.Argument, downloadCmd string) error {
 		return err
 	}
 
-	if err := NewDeployPipeline(runtime); err != nil {
+	if err := newDeployPipeline(runtime); err != nil {
 		return err
 	}
 
@@ -159,7 +159,7 @@ type PrintDeployInfoResult struct {
 	Password string `table:"password"`
 }
 
-func PrintDeployInfo(runtime *common.KubeRuntime) {
+func printDeployInfo(runtime *common.KubeRuntime) {
 
 	auths := reg.DockerRegistryAuthEntries(runtime.Cluster.Registry.Auths)
 
@@ -180,21 +180,21 @@ func PrintDeployInfo(runtime *common.KubeRuntime) {
 		{
 			Name:     "console",
 			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
-			Domain:   fmt.Sprintf("console.%s", runtime.Cluster.Aicp.Domain),
+			Domain:   fmt.Sprintf("console.%s", runtime.Cluster.Aicp.DomainConfig.Domain),
 			Username: "需要boss添加用户",
 			Password: "需要boss添加用户",
 		},
 		{
 			Name:     "boss",
 			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
-			Domain:   fmt.Sprintf("boss.%s", runtime.Cluster.Aicp.Domain),
-			Username: fmt.Sprintf("boss@%s", runtime.Cluster.Aicp.Domain),
+			Domain:   fmt.Sprintf("boss.%s", runtime.Cluster.Aicp.DomainConfig.Domain),
+			Username: fmt.Sprintf("boss@%s", runtime.Cluster.Aicp.DomainConfig.Domain),
 			Password: "zhu88jie",
 		},
 		{
 			Name:     "cadmin",
 			Ip:       runtime.Cluster.ControlPlaneEndpoint.Address,
-			Domain:   fmt.Sprintf("cadmin.%s", runtime.Cluster.Aicp.Domain),
+			Domain:   fmt.Sprintf("cadmin.%s", runtime.Cluster.Aicp.DomainConfig.Domain),
 			Username: "admin",
 			Password: "zhu88jie",
 		},
