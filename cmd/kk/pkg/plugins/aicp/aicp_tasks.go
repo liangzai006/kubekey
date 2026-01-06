@@ -45,6 +45,12 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 	if c.member {
 		clusterName = c.KubeConf.ClusterName
 	}
+
+	port := 80
+	if c.KubeConf.Cluster.Aicp.DomainConfig.Protocol == "https" {
+		port = 443
+	}
+
 	ks := map[string]interface{}{
 		"host": "ks-console.kubesphere-system.svc",
 		"port": "80",
@@ -76,6 +82,7 @@ func (c *ConfigServerTask) Execute(runtime connector.Runtime) error {
 				"hostPrefix":      c.KubeConf.Cluster.Aicp.DomainConfig.Api,
 				"protocol":        c.KubeConf.Cluster.Aicp.DomainConfig.Protocol,
 				"zone":            c.KubeConf.Cluster.Aicp.Zone,
+				"port":            port,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
 				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
 			},

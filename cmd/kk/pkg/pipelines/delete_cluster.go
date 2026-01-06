@@ -50,6 +50,8 @@ func NewDeleteClusterPipeline(runtime *common.KubeRuntime) error {
 	if err := p.Start(); err != nil {
 		return err
 	}
+
+	runtime.RemoveAll()
 	return nil
 }
 

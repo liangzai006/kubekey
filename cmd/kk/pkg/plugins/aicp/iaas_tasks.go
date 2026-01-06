@@ -195,6 +195,10 @@ func (c *ConsoleTask) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
 	}
+	port := 80
+	if c.KubeConf.Cluster.Aicp.DomainConfig.Protocol == "https" {
+		port = 443
+	}
 
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
@@ -210,6 +214,7 @@ func (c *ConsoleTask) Execute(runtime connector.Runtime) error {
 				"protocol":          c.KubeConf.Cluster.Aicp.DomainConfig.Protocol,
 				"docsPrefix":        c.KubeConf.Cluster.Aicp.DomainConfig.Docs,
 				"hostPrefix":        c.KubeConf.Cluster.Aicp.DomainConfig.Api,
+				"port":              port,
 			},
 			"pg": map[string]interface{}{
 				"user":            common.PG_YUNIFY,
@@ -255,9 +260,6 @@ func (b *BossTask) Execute(runtime connector.Runtime) error {
 				"access_key_id":     iaasKeys.(map[string]string)[common.BOSS_KEY_ID],
 				"secret_access_key": iaasKeys.(map[string]string)[common.BOSS_SECRET_KEY],
 				"default_zone":      b.KubeConf.Cluster.Aicp.Zone,
-				"domain":            b.KubeConf.Cluster.Aicp.DomainConfig.Domain,
-				"hostPrefix":        b.KubeConf.Cluster.Aicp.DomainConfig.Api,
-				"protocol":          b.KubeConf.Cluster.Aicp.DomainConfig.Protocol,
 			},
 		},
 	}
@@ -489,6 +491,7 @@ func withSslConfig(kubeConf *common.KubeConf) (map[string]interface{}, error) {
 	if err != nil {
 		return nil, fmt.Errorf("create general cert failed: %v", err)
 	}
+	sslConfig["enabled"] = true
 	sslConfig["useExistingSecret"] = true
 	sslConfig["certs"] = map[string]interface{}{
 		string(v1alpha2.ApiCertKey):     s.Name,

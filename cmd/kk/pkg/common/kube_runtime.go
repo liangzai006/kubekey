@@ -118,3 +118,7 @@ func (k *KubeRuntime) IsStepSkip(skip string) bool {
 	_, err := os.Stat(path.Join(k.GetWorkDir(), "step", skip))
 	return err == nil
 }
+
+func (k *KubeRuntime) RemoveAll() error {
+	return os.RemoveAll(path.Join(k.GetWorkDir(), "step"))
+}

@@ -2,7 +2,6 @@ package aicp
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"time"
@@ -77,22 +76,22 @@ func (h *HelmOptions) Install() error {
 		return err
 	}
 	if getRelease == nil {
-		file, err := os.Create(fmt.Sprintf("%s-%s.yaml", h.Name, h.Namespace))
-		if err != nil {
-			return err
-		}
-		defer file.Close()
+		// file, err := os.Create(fmt.Sprintf("%s-%s.yaml", h.Name, h.Namespace))
+		// if err != nil {
+		// 	return err
+		// }
+		// defer file.Close()
 		i := action.NewInstall(cfg)
 		i.ReleaseName = h.Name
 		i.Namespace = h.Namespace
 		i.CreateNamespace = true
 		i.Timeout = timeout
-		rel, err := i.RunWithContext(ctx, chart, h.Values)
+		_, err = i.RunWithContext(ctx, chart, h.Values)
 		if err != nil {
 			klog.Errorf("install %s failed, %s\n", h.Name, err)
 			return err
 		}
-		file.WriteString(rel.Manifest)
+		// file.WriteString(rel.Manifest)
 	} else {
 		u := action.NewUpgrade(cfg)
 		u.Namespace = h.Namespace
