@@ -260,6 +260,7 @@ func (b *BossTask) Execute(runtime connector.Runtime) error {
 				"access_key_id":     iaasKeys.(map[string]string)[common.BOSS_KEY_ID],
 				"secret_access_key": iaasKeys.(map[string]string)[common.BOSS_SECRET_KEY],
 				"default_zone":      b.KubeConf.Cluster.Aicp.Zone,
+				"domain":            b.KubeConf.Cluster.Aicp.DomainConfig.Domain,
 			},
 		},
 	}
