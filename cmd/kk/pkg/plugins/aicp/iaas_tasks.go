@@ -555,6 +555,7 @@ func (m *MsgHubTask) Execute(runtime connector.Runtime) error {
 	if !ok {
 		return fmt.Errorf(" get %s from pipeline cache failed", common.IAAS_AKSK)
 	}
+
 	vals := map[string]interface{}{
 		"global": map[string]interface{}{
 			"offlineRepo": m.KubeConf.Cluster.Registry.PrivateRegistry,
@@ -562,8 +563,6 @@ func (m *MsgHubTask) Execute(runtime connector.Runtime) error {
 		"config": map[string]interface{}{
 			"domain": m.KubeConf.Cluster.Aicp.DomainConfig.Domain,
 			"iaas": map[string]interface{}{
-				"hostPrefix":      m.KubeConf.Cluster.Aicp.DomainConfig.Api,
-				"protocol":        m.KubeConf.Cluster.Aicp.DomainConfig.Protocol,
 				"accessKey":       iaasKeys.(map[string]string)[common.ADMIN_KEY_ID],
 				"secretAccessKey": iaasKeys.(map[string]string)[common.ADMIN_SECRET_KEY],
 			},
