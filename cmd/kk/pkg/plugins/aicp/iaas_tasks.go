@@ -214,6 +214,7 @@ func (c *ConsoleTask) Execute(runtime connector.Runtime) error {
 				"protocol":          c.KubeConf.Cluster.Aicp.DomainConfig.Protocol,
 				"docsPrefix":        c.KubeConf.Cluster.Aicp.DomainConfig.Docs,
 				"hostPrefix":        c.KubeConf.Cluster.Aicp.DomainConfig.Api,
+				"aiPrefix":          c.KubeConf.Cluster.Aicp.DomainConfig.Ai,
 				"port":              port,
 			},
 			"pg": map[string]interface{}{
