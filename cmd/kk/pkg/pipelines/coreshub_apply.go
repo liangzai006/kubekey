@@ -104,6 +104,7 @@ func NewApplyPipeline(runtime *common.KubeRuntime) error {
 		&storage.DeployStorageVolumeModule{},
 		&kubesphere.DeployMultiClusterModule{},
 		&aicp.DeployAicpServiceModule{IsMember: true},
+		&aicp.PatchConfigModule{},
 		&aicp.DeployOptionalModules{},
 	}
 

@@ -701,12 +701,17 @@ func (p *ApplyInstallPlanTask) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-type ApplyPrometheusResourceTask struct {
+type ApplyPrometheusRuleTask struct {
 	common.KubeAction
 }
 
-func (p *ApplyPrometheusResourceTask) Execute(runtime connector.Runtime) error {
-	installPlanDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "common", "kse-extension-notification-webhook")
+/*
+*
+待拆开,rule 和通知
+*
+*/
+func (p *ApplyPrometheusRuleTask) Execute(runtime connector.Runtime) error {
+	installPlanDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "common", "kse-extension-prometheus-rule")
 
 	fs, err := os.ReadDir(installPlanDir)
 	if err != nil {
@@ -736,6 +741,56 @@ func (p *ApplyPrometheusResourceTask) Execute(runtime connector.Runtime) error {
 	for _, r := range resources {
 
 		helper := resource.NewHelper(r.Client, r.Mapping).WithFieldManager("prometheus-resources")
+		_, err = helper.Get(r.Namespace, r.Name)
+		if err == nil {
+			continue
+		}
+
+		_, err = helper.Create(r.Namespace, true, r.Object)
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
+}
+
+type ApplyPrometheusAlertTask struct {
+	common.KubeAction
+}
+
+func (p *ApplyPrometheusAlertTask) Execute(runtime connector.Runtime) error {
+	installPlanDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "common", "kse-extension-notification-alert")
+
+	fs, err := os.ReadDir(installPlanDir)
+	if err != nil {
+		return err
+	}
+	cli := cli.New()
+	kc := kube.New(cli.RESTClientGetter())
+	var resources kube.ResourceList
+
+	for _, f := range fs {
+		if f.IsDir() || !strings.HasSuffix(f.Name(), ".yaml") {
+			continue
+		}
+		yamlData, err := os.ReadFile(filepath.Join(installPlanDir, f.Name()))
+		if err != nil {
+			return err
+		}
+
+		kcRes, err := kc.Build(bytes.NewReader(yamlData), false)
+		if err != nil {
+			return err
+		}
+		resources = append(resources, kcRes...)
+
+	}
+
+	for _, r := range resources {
+
+		helper := resource.NewHelper(r.Client, r.Mapping).WithFieldManager("prometheus-alerts")
 		_, err = helper.Get(r.Namespace, r.Name)
 		if err == nil {
 			continue

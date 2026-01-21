@@ -76,3 +76,31 @@ func (h *DeployOptionalModules) Init() {
 		&NetworkOperatorTask,
 	}
 }
+
+type PatchConfigModule struct {
+	common.KubeModule
+}
+
+func (p *PatchConfigModule) IsSkip() bool {
+	return p.Skip
+}
+func (p *PatchConfigModule) Init() {
+	p.Name = "PatchConfigModule"
+	p.Desc = "Patch Config Module"
+	PatchNginxTask := task.LocalTask{
+		Name:   "PatchNginxTask",
+		Desc:   "Patch Nginx Config",
+		Action: new(PatchNginxTask),
+		Retry:  0,
+	}
+	PatchZoneDbTask := task.LocalTask{
+		Name:   "PatchZoneDbTask",
+		Desc:   "Patch Zone Db Config",
+		Action: new(PatchZoneDbTask),
+		Retry:  0,
+	}
+	p.Tasks = []task.Interface{
+		&PatchNginxTask,
+		&PatchZoneDbTask,
+	}
+}

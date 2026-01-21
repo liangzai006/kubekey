@@ -289,10 +289,17 @@ func (d *DeployKsCoreModule) Init() {
 		Action: new(ApplyInstallPlanTask),
 		Retry:  0,
 	}
-	applyPrometheusResource := &task.LocalTask{
-		Name:   "ApplyPrometheusResource",
-		Desc:   "Apply Prometheus Resource",
-		Action: new(ApplyPrometheusResourceTask),
+	applyPrometheusRule := &task.LocalTask{
+		Name:   "ApplyPrometheusRule",
+		Desc:   "Apply Prometheus Rule",
+		Action: new(ApplyPrometheusRuleTask),
+		Retry:  0,
+	}
+
+	applyPrometheusAlert := &task.LocalTask{
+		Name:   "ApplyPrometheusAlert",
+		Desc:   "Apply Prometheus Alert",
+		Action: new(ApplyPrometheusAlertTask),
 		Retry:  0,
 	}
 
@@ -301,7 +308,8 @@ func (d *DeployKsCoreModule) Init() {
 		PushKseExtension,
 		pushAicp,
 		applyInstallPlan,
-		applyPrometheusResource,
+		applyPrometheusRule,
+		applyPrometheusAlert,
 	}
 }
 
@@ -336,9 +344,17 @@ func (d *DeployMultiClusterModule) Init() {
 		Action: new(PatchInstallPlanTask),
 	}
 
+	applyPrometheusRule := &task.LocalTask{
+		Name:   "ApplyPrometheusRule",
+		Desc:   "Apply Prometheus Rule",
+		Action: new(ApplyPrometheusRuleTask),
+		Retry:  0,
+	}
+
 	d.Tasks = []task.Interface{
 		deployMultiCluster,
 		prePatchInstallPlan,
 		patchInstallPlan,
+		applyPrometheusRule,
 	}
 }
