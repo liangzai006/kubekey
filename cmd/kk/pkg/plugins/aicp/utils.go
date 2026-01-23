@@ -25,11 +25,12 @@ import (
 )
 
 type HelmOptions struct {
-	Name      string                 // release 名
-	Namespace string                 // namespace
-	ChartPath string                 // 本地 chart 路径 或 repo 名称
-	Values    map[string]interface{} // 自定义 values
-	PreHook   func(ctx context.Context, kubeClient kubernetes.Interface) error
+	Name       string                 // release 名
+	Namespace  string                 // namespace
+	ChartPath  string                 // 本地 chart 路径 或 repo 名称
+	Values     map[string]interface{} // 自定义 values
+	PreHook    func(ctx context.Context, kubeClient kubernetes.Interface) error
+	KubeConfig string // kubeconfig 路径
 }
 
 type BaseHelm interface {
@@ -41,7 +42,12 @@ type BaseHelm interface {
 func (h *HelmOptions) Init() (*action.Configuration, error) {
 	cli := cli.New()
 	cli.SetNamespace(h.Namespace)
-	cli.KubeConfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
+	if h.KubeConfig == "" {
+		cli.KubeConfig = filepath.Join(homedir.HomeDir(), ".kube", "config")
+	} else {
+		cli.KubeConfig = h.KubeConfig
+	}
+
 	cfg := new(action.Configuration)
 	err := cfg.Init(cli.RESTClientGetter(), cli.Namespace(), os.Getenv("HELM_DRIVER"), func(format string, v ...interface{}) {
 		klog.Infof(format, v...)
@@ -68,8 +74,8 @@ func (h *HelmOptions) Install() error {
 		klog.Errorf("get kubernetes client set failed, %s\n", err)
 		return err
 	}
-	timeout := 300 * time.Second
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	timeout := 100 * time.Second
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	if h.PreHook != nil {

@@ -19,9 +19,10 @@ package task
 import (
 	"context"
 	"fmt"
-	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/common"
 	"runtime"
 	"time"
+
+	"github.com/kubesphere/kubekey/v3/cmd/kk/pkg/core/common"
 
 	"github.com/pkg/errors"
 
@@ -231,4 +232,13 @@ func (l *LocalTask) ExecuteRollback() {
 	if !l.TaskResult.IsFailed() {
 		return
 	}
+
+	err := l.Rollback.Execute(l.Runtime, l.TaskResult.ActionResults[0])
+	if err != nil {
+		logger.Log.Errorf("rollback failed: [%s]", l.TaskResult.ActionResults[0].Host.GetName())
+		logger.Log.Messagef(l.TaskResult.ActionResults[0].Host.GetName(), err.Error())
+	}
+
+	logger.Log.Infof("rollback success: [%s]", l.TaskResult.ActionResults[0].Host.GetName())
+	logger.Log.Messagef(l.TaskResult.ActionResults[0].Host.GetName(), "rollback success")
 }

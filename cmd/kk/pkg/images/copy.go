@@ -64,7 +64,7 @@ func (c *CopyImageOptions) Copy() error {
 	if srcImageInspect == nil {
 		return errors.Errorf("image inspect is nil: %s", c.srcImage.imageName)
 	}
-	if c.srcImage.dockerImage.arch != srcImageInspect.Architecture && c.srcImage.dockerImage.os != srcImageInspect.Os {
+	if c.srcImage.dockerImage.arch != srcImageInspect.Architecture || c.srcImage.dockerImage.os != srcImageInspect.Os {
 		if c.srcImage.dockerImage.variant == "" {
 			return nil
 		}

@@ -212,9 +212,10 @@ func (p *PatchNginxTask) Execute(runtime connector.Runtime) error {
 	nginxDir := filepath.Join(p.KubeConf.Arg.AicpWorkDir, "charts", "public-service", "nginx")
 
 	helm := HelmOptions{
-		Name:      "nginx",
-		Namespace: "pitrix",
-		ChartPath: nginxDir,
+		Name:       "nginx",
+		Namespace:  "pitrix",
+		ChartPath:  nginxDir,
+		KubeConfig: p.KubeConf.Arg.KubeConfig,
 	}
 
 	rels, err := helm.GetHistoryRelease()
@@ -237,8 +238,28 @@ func (p *PatchNginxTask) Execute(runtime connector.Runtime) error {
 		return fmt.Errorf("current nginx version %s is less than 2.27.0, please upgrade nginx to 2.27.0 or later", lastRel.Chart.Metadata.Version)
 	}
 
+	regValues := lastRel.Config
+
+	valuesMap := regValues["configMap"].(map[string]interface{})
+	zones := valuesMap["zones"].([]interface{})
+	for _, zone := range zones {
+		zoneMap := zone.(map[string]interface{})
+		if zoneMap["name"].(string) == p.KubeConf.Cluster.Aicp.Zone {
+			return nil
+		}
+	}
+	valuesMap["zones"] = append(zones, map[string]interface{}{
+		"name":     p.KubeConf.Cluster.Aicp.Zone,
+		"endpoint": fmt.Sprintf("%s:31080", p.KubeConf.Cluster.ControlPlaneEndpoint.Address),
+	})
+	helm.Values = regValues
+
 	// 备份manifest
 	backupPath := filepath.Join(runtime.GetWorkDir(), "backup")
+	err = os.MkdirAll(backupPath, 0755)
+	if err != nil {
+		return err
+	}
 
 	var backup []string
 
@@ -257,17 +278,6 @@ func (p *PatchNginxTask) Execute(runtime connector.Runtime) error {
 	if err != nil {
 		return err
 	}
-
-	regValues := lastRel.Config
-
-	valuesMap := regValues["configMap"].(map[string]interface{})
-	zones := valuesMap["zones"].([]map[string]interface{})
-	valuesMap["zones"] = append(zones, map[string]interface{}{
-		"name":     p.KubeConf.Cluster.Aicp.Zone,
-		"endpoint": fmt.Sprintf("%s:31080", p.KubeConf.Cluster.ControlPlaneEndpoint.Address),
-	})
-
-	helm.Values = regValues
 
 	return helm.Upgrade()
 }
@@ -311,7 +321,7 @@ func (p *PatchZoneDbTask) Execute(runtime connector.Runtime) error {
 		return fmt.Errorf("查询account zones失败: %w", err)
 	}
 
-	coreZone := regexp.MustCompile(fmt.Sprintf("\b%s\b", p.KubeConf.Cluster.Aicp.Zone))
+	coreZone := regexp.MustCompile(fmt.Sprintf(`\b%s\b`, regexp.QuoteMeta(p.KubeConf.Cluster.Aicp.Zone)))
 	if !coreZone.MatchString(zones) {
 		err = execSql(accountDb, fmt.Sprintf("UPDATE console SET zones = zones ||',%s' where console_id = 'qacloud'", p.KubeConf.Cluster.Aicp.Zone))
 		if err != nil {
@@ -325,7 +335,7 @@ func (p *PatchZoneDbTask) Execute(runtime connector.Runtime) error {
 	}
 
 	var regionCount int
-	err = globalDb.QueryRow("select count(*) from region where region_id = ?", p.KubeConf.Cluster.Aicp.Zone).Scan(&regionCount)
+	err = globalDb.QueryRow(fmt.Sprintf("select count(*) from region where region_id = '%s'", p.KubeConf.Cluster.Aicp.Zone)).Scan(&regionCount)
 	if err != nil {
 		return fmt.Errorf("查询global region失败: %w", err)
 	}
@@ -337,7 +347,7 @@ func (p *PatchZoneDbTask) Execute(runtime connector.Runtime) error {
 	}
 
 	var zoneCount int
-	err = globalDb.QueryRow("select count(*) from zone where zone_id = ?", p.KubeConf.Cluster.Aicp.Zone).Scan(&zoneCount)
+	err = globalDb.QueryRow(fmt.Sprintf("select count(*) from zone where zone_id = '%s'", p.KubeConf.Cluster.Aicp.Zone)).Scan(&zoneCount)
 	if err != nil {
 		return fmt.Errorf("查询global zone失败: %w, sql: %s", err, fmt.Sprintf("select count(*) from zone where zone_id = %s", p.KubeConf.Cluster.Aicp.Zone))
 	}
@@ -355,7 +365,7 @@ func (p *PatchZoneDbTask) Execute(runtime connector.Runtime) error {
 	}
 
 	var userZoneAdminCount int
-	err = globalDb.QueryRow("select count(*) from user_zone where user_id = 'admin' and zone_id = ? and role = 'global_admin'", p.KubeConf.Cluster.Aicp.Zone).Scan(&userZoneAdminCount)
+	err = globalDb.QueryRow(fmt.Sprintf("select count(*) from user_zone where user_id = 'admin' and zone_id = '%s' and role = 'global_admin'", p.KubeConf.Cluster.Aicp.Zone)).Scan(&userZoneAdminCount)
 	if err != nil {
 		return fmt.Errorf("查询global user_zone失败: %w, sql: %s", err, fmt.Sprintf("select count(*) from user_zone where user_id = 'admin' and zone_id = %s and role = 'global_admin'", p.KubeConf.Cluster.Aicp.Zone))
 	}
@@ -368,7 +378,7 @@ func (p *PatchZoneDbTask) Execute(runtime connector.Runtime) error {
 	}
 
 	var userZoneBossCount int
-	err = globalDb.QueryRow("select count(*) from user_zone where user_id = 'boss' and zone_id = ? and role = 'global_admin'", p.KubeConf.Cluster.Aicp.Zone).Scan(&userZoneBossCount)
+	err = globalDb.QueryRow(fmt.Sprintf("select count(*) from user_zone where user_id = 'boss' and zone_id = '%s' and role = 'global_admin'", p.KubeConf.Cluster.Aicp.Zone)).Scan(&userZoneBossCount)
 	if err != nil {
 		return fmt.Errorf("查询global user_zone失败: %w, sql: %s", err, fmt.Sprintf("select count(*) from user_zone where user_id = 'boss' and zone_id = %s and role = 'global_admin'", p.KubeConf.Cluster.Aicp.Zone))
 	}
