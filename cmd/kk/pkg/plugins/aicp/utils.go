@@ -74,7 +74,7 @@ func (h *HelmOptions) Install() error {
 		klog.Errorf("get kubernetes client set failed, %s\n", err)
 		return err
 	}
-	timeout := 100 * time.Second
+	timeout := 300 * time.Second
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
