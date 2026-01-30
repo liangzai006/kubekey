@@ -115,6 +115,8 @@ const (
 	DefaultAicpDomainCadmin    = "cadmin"
 	DefaultAicpDomainDocs      = "docs"
 	DefaultAicpDomainCertPaths = "certs"
+
+	DefaultAicpStorage = "zfs"
 )
 
 func (cfg *ClusterSpec) SetDefaultClusterSpec() (*ClusterSpec, map[string][]*KubeHost) {
@@ -400,6 +402,9 @@ func SetDefaultAicpCfg(cfg *ClusterSpec) Aicp {
 	}
 	if cfg.Aicp.DomainConfig.Docs == "" {
 		cfg.Aicp.DomainConfig.Docs = DefaultAicpDomainDocs
+	}
+	if cfg.Aicp.Storage == "" {
+		cfg.Aicp.Storage = DefaultAicpStorage
 	}
 	return cfg.Aicp
 }

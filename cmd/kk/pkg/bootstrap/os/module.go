@@ -517,10 +517,23 @@ func (r *AicpDirModule) Init() {
 		Parallel: true,
 		Retry:    2,
 	}
+	configLongHornVolumeDir := &task.RemoteTask{
+		Name:     "ConfigLongHornVolumeDir",
+		Desc:     "Config Longhorn volume dir",
+		Hosts:    r.Runtime.GetAllHosts(),
+		Action:   new(ConfigLongHornVolumeDir),
+		Prepare:  &kubernetes.NodeInCluster{Not: true},
+		Parallel: true,
+		Retry:    2,
+	}
 
 	r.Tasks = []task.Interface{
 		configRootDir,
-		configDataDir,
+	}
+	if r.KubeConf.Cluster.Aicp.Storage == common.Longhorn {
+		r.Tasks = append(r.Tasks, configLongHornVolumeDir)
+	} else {
+		r.Tasks = append(r.Tasks, configDataDir)
 	}
 }
 

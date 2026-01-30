@@ -959,59 +959,63 @@ func (g *ConfigAicpDataDir) Execute(runtime connector.Runtime) error {
 	return nil
 }
 
-//longhorn
-// func (g *ConfigAicpDataDir) Execute(runtime connector.Runtime) error {
-// 	// Get current host information
-// 	currentHost := getCurrentHost(runtime)
-// 	if currentHost == nil {
-// 		return errors.New("current host not found")
-// 	}
+type ConfigLongHornVolumeDir struct {
+	common.KubeAction
+}
 
-// 	if currentHost.ZfsDataDisk == nil || len(currentHost.ZfsDataDisk) == 0 {
-// 		return nil
-// 	}
+// longhorn
+func (g *ConfigLongHornVolumeDir) Execute(runtime connector.Runtime) error {
+	// Get current host information
+	currentHost := getCurrentHost(runtime)
+	if currentHost == nil {
+		return errors.New("current host not found")
+	}
 
-// 	mkdirCmd := fmt.Sprintf("mkdir -p %s", common.LongHornVolumeDir)
-// 	_, err := runtime.GetRunner().SudoCmd(mkdirCmd, false)
-// 	if err != nil {
-// 		return errors.Wrap(err, "failed to create longhorn volume directory")
-// 	}
+	if currentHost.ZfsDataDisk == nil || len(currentHost.ZfsDataDisk) == 0 {
+		return nil
+	}
 
-// 	if !checkFileSystemFormattedAsExt4(runtime, currentHost.ZfsDataDisk[0]) {
-// 		// Format file system
-// 		formatCmd := fmt.Sprintf("mkfs.ext4 %s", currentHost.ZfsDataDisk[0])
-// 		_, err := runtime.GetRunner().SudoCmd(formatCmd, false)
-// 		if err != nil {
-// 			return errors.Wrap(err, "failed to format disk with ext4")
-// 		}
-// 	}
+	mkdirCmd := fmt.Sprintf("mkdir -p %s", common.LongHornVolumeDir)
+	_, err := runtime.GetRunner().SudoCmd(mkdirCmd, false)
+	if err != nil {
+		return errors.Wrap(err, "failed to create longhorn volume directory")
+	}
 
-// 	if !checkMountExists(runtime, common.LongHornVolumeDir) {
-// 		// Mount file system
-// 		mountCmd := fmt.Sprintf("mount  %s %s", currentHost.ZfsDataDisk[0], common.LongHornVolumeDir)
-// 		_, err := runtime.GetRunner().SudoCmd(mountCmd, false)
-// 		if err != nil {
-// 			return errors.Wrap(err, "failed to mount longhorn volume")
-// 		}
-// 	}
+	if !checkFileSystemFormattedAsExt4(runtime, currentHost.ZfsDataDisk[0]) {
+		// Format file system
+		formatCmd := fmt.Sprintf("mkfs.ext4 %s", currentHost.ZfsDataDisk[0])
+		_, err := runtime.GetRunner().SudoCmd(formatCmd, false)
+		if err != nil {
+			return errors.Wrap(err, "failed to format disk with ext4")
+		}
+	}
 
-// 	if !checkFstabEntryExists(runtime, common.LongHornVolumeDir) {
-// 		// Get UUID of file system
-// 		uuid, err := getDeviceUUID(runtime, currentHost.ZfsDataDisk[0])
-// 		if err != nil || uuid == "" {
-// 			return errors.Wrap(err, "failed to get UUID")
-// 		}
+	if !checkMountExists(runtime, common.LongHornVolumeDir) {
+		// Mount file system
+		mountCmd := fmt.Sprintf("mount  %s %s", currentHost.ZfsDataDisk[0], common.LongHornVolumeDir)
+		_, err := runtime.GetRunner().SudoCmd(mountCmd, false)
+		if err != nil {
+			return errors.Wrap(err, "failed to mount longhorn volume")
+		}
+	}
 
-// 		// Add mount information to /etc/fstab
-// 		fstabCmd := fmt.Sprintf("echo 'UUID=%s %s ext4 defaults 0 1' >> /etc/fstab", uuid, common.LongHornVolumeDir)
-// 		_, err = runtime.GetRunner().SudoCmd(fstabCmd, false)
-// 		if err != nil {
-// 			return errors.Wrap(err, "failed to add fstab entry")
-// 		}
-// 	}
+	if !checkFstabEntryExists(runtime, common.LongHornVolumeDir) {
+		// Get UUID of file system
+		uuid, err := getDeviceUUID(runtime, currentHost.ZfsDataDisk[0])
+		if err != nil || uuid == "" {
+			return errors.Wrap(err, "failed to get UUID")
+		}
 
-// 	return nil
-// }
+		// Add mount information to /etc/fstab
+		fstabCmd := fmt.Sprintf("echo 'UUID=%s %s ext4 defaults 0 1' >> /etc/fstab", uuid, common.LongHornVolumeDir)
+		_, err = runtime.GetRunner().SudoCmd(fstabCmd, false)
+		if err != nil {
+			return errors.Wrap(err, "failed to add fstab entry")
+		}
+	}
+
+	return nil
+}
 
 func isZfsPoolCreated(runtime connector.Runtime, aicpZpoolName string) bool {
 	cmd := "zpool list"

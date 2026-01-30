@@ -105,6 +105,17 @@ func (d *DeployStorageVolumeModule) Init() {
 			Namespace: "openebs-system",
 		},
 	}
+	longHorn := &task.LocalTask{
+		Name:    "Deploy LongHorn StorageClass",
+		Desc:    "Deploy LongHorn StorageClass",
+		Prepare: &aicp.HelmIsInstalled{Not: true, Name: "longhorn", Namespace: "longhorn-system"},
+		Retry:   0,
+		Action:  new(DeployLongHornStorageClass),
+		Rollback: &aicp.DeployFailRollBack{
+			Name:      "longhorn",
+			Namespace: "longhorn-system",
+		},
+	}
 
 	aicpStorageTask := &task.LocalTask{
 		Name:    "AicpStorageTask",
@@ -117,8 +128,15 @@ func (d *DeployStorageVolumeModule) Init() {
 		},
 	}
 
-	d.Tasks = []task.Interface{
-		zfs,
-		aicpStorageTask,
+	if d.StorageType == common.Longhorn {
+		d.Tasks = []task.Interface{
+			longHorn,
+			aicpStorageTask,
+		}
+	} else {
+		d.Tasks = []task.Interface{
+			zfs,
+			aicpStorageTask,
+		}
 	}
 }

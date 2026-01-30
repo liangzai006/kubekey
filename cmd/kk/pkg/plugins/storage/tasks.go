@@ -58,7 +58,27 @@ func (d *DeployZfsStorageClass) Execute(runtime connector.Runtime) error {
 		Values:    vals,
 	}
 	return helm.Install()
+}
 
+type DeployLongHornStorageClass struct {
+	common.KubeAction
+}
+
+func (d *DeployLongHornStorageClass) Execute(runtime connector.Runtime) error {
+	longHornDir := filepath.Join(d.KubeConf.Arg.AicpWorkDir, "charts", "longhorn")
+	vals := map[string]interface{}{
+		"global": map[string]interface{}{
+			"imageRegistry": d.KubeConf.Cluster.Registry.PrivateRegistry,
+		},
+	}
+
+	helm := aicp.HelmOptions{
+		Name:      "longhorn",
+		Namespace: "longhorn-system",
+		ChartPath: longHornDir,
+		Values:    vals,
+	}
+	return helm.Install()
 }
 
 type AicpStorageTask struct {

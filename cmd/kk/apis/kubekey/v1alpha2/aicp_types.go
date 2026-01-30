@@ -35,6 +35,7 @@ type DomainConfig struct {
 
 type Aicp struct {
 	Zone         string       `yaml:"zone" json:"zone,omitempty"`
+	Storage      string       `yaml:"storage" json:"storage,omitempty"`
 	Billing      bool         `yaml:"billing" json:"billing,omitempty"`
 	Hami         bool         `yaml:"hami" json:"hami,omitempty"`
 	Network      bool         `yaml:"network" json:"network,omitempty"`
