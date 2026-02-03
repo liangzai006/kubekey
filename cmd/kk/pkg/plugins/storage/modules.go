@@ -82,8 +82,7 @@ func (d *DeployLocalVolumeModule) Init() {
 
 type DeployStorageVolumeModule struct {
 	common.KubeModule
-	Skip        bool
-	StorageType string
+	Skip bool
 }
 
 func (d *DeployStorageVolumeModule) IsSkip() bool {
@@ -128,7 +127,7 @@ func (d *DeployStorageVolumeModule) Init() {
 		},
 	}
 
-	if d.StorageType == common.Longhorn {
+	if d.KubeConf.Cluster.Aicp.Storage == common.Longhorn {
 		d.Tasks = []task.Interface{
 			longHorn,
 			aicpStorageTask,
